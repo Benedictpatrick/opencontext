@@ -1,5 +1,5 @@
 """
-ContextOS core types: memory tiers, context pages, paging events and metrics.
+OpenContext core types: memory tiers, context pages, paging events and metrics.
 """
 
 from __future__ import annotations

@@ -6,10 +6,10 @@ import os
 
 import pytest
 
-from contextos.core.kernel import ContextKernel
-from contextos.core.types import PageTier
-from contextos.core.workspace import WorkspaceScanner
-from contextos.storage.swap import SwapStorage
+from opencontext.core.kernel import ContextKernel
+from opencontext.core.types import PageTier
+from opencontext.core.workspace import WorkspaceScanner
+from opencontext.storage.swap import SwapStorage
 
 
 @pytest.fixture

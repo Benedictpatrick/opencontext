@@ -10,7 +10,7 @@ Design rules this module holds to:
 
   * Streaming requests stream. `stream: true` is proxied as server-sent events
     rather than buffered and re-parsed as JSON.
-  * Fields ContextOS does not understand (`tools`, `response_format`, and
+  * Fields OpenContext does not understand (`tools`, `response_format`, and
     anything else the client sends) are passed through untouched.
   * When the upstream is unreachable the proxy returns an error. It never
     synthesises a completion, because a client cannot tell a fabricated answer
@@ -29,11 +29,11 @@ from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
 from pydantic import BaseModel, ConfigDict, Field
 
-from contextos import __version__
-from contextos.core.compactor import TracebackCompactor
-from contextos.core.kernel import ContextKernel
-from contextos.core.pager import ContextPager
-from contextos.core.workspace import WorkspaceScanner
+from opencontext import __version__
+from opencontext.core.compactor import TracebackCompactor
+from opencontext.core.kernel import ContextKernel
+from opencontext.core.pager import ContextPager
+from opencontext.core.workspace import WorkspaceScanner
 
 DEFAULT_UPSTREAM = "http://localhost:11434/v1"
 UPSTREAM_TIMEOUT = httpx.Timeout(connect=10.0, read=300.0, write=30.0, pool=10.0)
@@ -51,7 +51,7 @@ class ChatCompletionRequest(BaseModel):
     # tool-calling clients in a way that looked like a model failure.
     model_config = ConfigDict(extra="allow")
 
-    model: str = "contextos/vkernel"
+    model: str = "opencontext/vkernel"
     messages: List[ChatMessage]
     temperature: Optional[float] = None
     max_tokens: Optional[int] = None
@@ -73,13 +73,13 @@ class UserChatRequest(BaseModel):
 class ProxyConfig(BaseModel):
     """Runtime configuration, resolved from arguments then environment."""
 
-    upstream_url: str = Field(default_factory=lambda: os.environ.get("CONTEXTOS_UPSTREAM", DEFAULT_UPSTREAM))
-    api_key: Optional[str] = Field(default_factory=lambda: os.environ.get("CONTEXTOS_API_KEY") or None)
+    upstream_url: str = Field(default_factory=lambda: os.environ.get("OPENCONTEXT_UPSTREAM", DEFAULT_UPSTREAM))
+    api_key: Optional[str] = Field(default_factory=lambda: os.environ.get("OPENCONTEXT_API_KEY") or None)
     upstream_api_key: Optional[str] = Field(
-        default_factory=lambda: os.environ.get("CONTEXTOS_UPSTREAM_API_KEY") or None
+        default_factory=lambda: os.environ.get("OPENCONTEXT_UPSTREAM_API_KEY") or None
     )
     expose_page_content: bool = Field(
-        default_factory=lambda: os.environ.get("CONTEXTOS_EXPOSE_CONTENT", "").lower()
+        default_factory=lambda: os.environ.get("OPENCONTEXT_EXPOSE_CONTENT", "").lower()
         in ("1", "true", "yes")
     )
 
@@ -116,7 +116,7 @@ def create_proxy_app(
     scanner = WorkspaceScanner(kernel, root_dir=root_dir)
 
     app = FastAPI(
-        title="ContextOS",
+        title="OpenContext",
         version=__version__,
         description="Virtual memory kernel for LLM context windows",
     )
@@ -133,7 +133,7 @@ def create_proxy_app(
         Enforce a shared secret when one is configured.
 
         The dashboard and page APIs expose the contents of the indexed workspace.
-        Binding to anything other than localhost without CONTEXTOS_API_KEY set
+        Binding to anything other than localhost without OPENCONTEXT_API_KEY set
         would publish that source tree to the network.
         """
         if not settings.api_key:
@@ -154,7 +154,7 @@ def create_proxy_app(
             with open(static_html_path, "r", encoding="utf-8") as handle:
                 return HTMLResponse(content=handle.read())
         return HTMLResponse(
-            content="<h1>ContextOS</h1><p>Dashboard assets are missing from this install.</p>",
+            content="<h1>OpenContext</h1><p>Dashboard assets are missing from this install.</p>",
             status_code=500,
         )
 
@@ -248,13 +248,13 @@ def create_proxy_app(
         resolved = pager.process_incoming_prompt_verbose(request.message)
 
         payload = {
-            "model": os.environ.get("CONTEXTOS_MODEL", "qwen2.5-coder:7b"),
+            "model": os.environ.get("OPENCONTEXT_MODEL", "qwen2.5-coder:7b"),
             "messages": [
                 {
                     "role": "system",
                     "content": (
                         "You are a software engineering assistant. The following context "
-                        "was assembled by ContextOS from the user's workspace.\n\n"
+                        "was assembled by OpenContext from the user's workspace.\n\n"
                         f"{resolved['context']}"
                     ),
                 },
@@ -276,7 +276,7 @@ def create_proxy_app(
                 detail=(
                     f"No model server reachable at {settings.upstream_url} ({error}). "
                     "Start a local model (for example `ollama serve`) or set "
-                    "CONTEXTOS_UPSTREAM and CONTEXTOS_UPSTREAM_API_KEY."
+                    "OPENCONTEXT_UPSTREAM and OPENCONTEXT_UPSTREAM_API_KEY."
                 ),
             ) from error
 
@@ -307,7 +307,7 @@ def create_proxy_app(
         return {
             "object": "list",
             "data": [
-                {"id": f"contextos/{name}", "object": "model", "created": created, "owned_by": "contextos"}
+                {"id": f"opencontext/{name}", "object": "model", "created": created, "owned_by": "opencontext"}
                 for name in ("vkernel", "qwen2.5-coder", "llama3.1", "gpt-4o")
             ],
         }
@@ -344,7 +344,7 @@ def create_proxy_app(
             {
                 "role": "system",
                 "content": (
-                    "Context assembled by ContextOS from the user's workspace. Pages marked "
+                    "Context assembled by OpenContext from the user's workspace. Pages marked "
                     "as swapped are available on request.\n\n" + assembled
                 ),
             }
@@ -355,7 +355,7 @@ def create_proxy_app(
         )
 
         payload["messages"] = forwarded
-        payload["model"] = str(payload.get("model", "")).replace("contextos/", "")
+        payload["model"] = str(payload.get("model", "")).replace("opencontext/", "")
 
         upstream = f"{settings.upstream_url.rstrip('/')}/chat/completions"
         headers = _upstream_headers(settings, raw_request.headers.get("Authorization"))
@@ -366,7 +366,7 @@ def create_proxy_app(
                 media_type="text/event-stream",
                 headers={
                     "Cache-Control": "no-cache",
-                    "X-ContextOS-Rehydrated": str(len(rehydrated)),
+                    "X-OpenContext-Rehydrated": str(len(rehydrated)),
                 },
             )
 
@@ -377,8 +377,8 @@ def create_proxy_app(
             raise HTTPException(
                 status_code=502,
                 detail=(
-                    f"ContextOS could not reach the upstream model at {settings.upstream_url}: "
-                    f"{error}. Set CONTEXTOS_UPSTREAM to a running OpenAI-compatible endpoint."
+                    f"OpenContext could not reach the upstream model at {settings.upstream_url}: "
+                    f"{error}. Set OPENCONTEXT_UPSTREAM to a running OpenAI-compatible endpoint."
                 ),
             ) from error
 
@@ -387,7 +387,7 @@ def create_proxy_app(
 
         return JSONResponse(
             content=_safe_json(response),
-            headers={"X-ContextOS-Rehydrated": str(len(rehydrated))},
+            headers={"X-OpenContext-Rehydrated": str(len(rehydrated))},
         )
 
     return app
@@ -436,7 +436,7 @@ async def _stream_upstream(
                     if chunk:
                         yield chunk
     except httpx.HTTPError as error:
-        yield _sse_error(f"ContextOS could not reach the upstream model: {error}")
+        yield _sse_error(f"OpenContext could not reach the upstream model: {error}")
 
 
 def _sse_error(message: str) -> bytes:
@@ -454,7 +454,7 @@ def run_proxy_server(
     auto_open: bool = False,
     upstream_url: Optional[str] = None,
 ) -> None:
-    """Launch the server. Called by `contextos serve`."""
+    """Launch the server. Called by `opencontext serve`."""
     import webbrowser
 
     app = create_proxy_app(kernel, upstream_url=upstream_url)

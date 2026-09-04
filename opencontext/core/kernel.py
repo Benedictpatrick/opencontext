@@ -1,5 +1,5 @@
 """
-The ContextOS virtual memory kernel.
+The OpenContext virtual memory kernel.
 
 Enforces a token budget over a set of context pages: allocates pages, evicts cold
 ones to disk under an LRU policy, rehydrates them on demand, and reports what it
@@ -14,9 +14,9 @@ import re
 import time
 from typing import Any, Dict, List, Optional, Tuple
 
-from contextos.core.compactor import TracebackCompactor
-from contextos.core.tokens import estimate_tokens
-from contextos.core.types import (
+from opencontext.core.compactor import TracebackCompactor
+from opencontext.core.tokens import estimate_tokens
+from opencontext.core.types import (
     ContextPage,
     MemoryMetrics,
     PageStatus,
@@ -24,7 +24,7 @@ from contextos.core.types import (
     PagingEvent,
     PagingEventType,
 )
-from contextos.storage.swap import SwapStorage
+from opencontext.storage.swap import SwapStorage
 
 MAX_RETAINED_EVENTS = 200
 DOOM_LOOP_THRESHOLD = 3
@@ -342,7 +342,7 @@ class ContextKernel:
     def _tombstone_for(page: ContextPage) -> str:
         """The marker left in context while a page is on disk."""
         return (
-            f"[ContextOS] '{page.title}' ({page.token_count:,} tokens) is swapped to disk. "
+            f"[OpenContext] '{page.title}' ({page.token_count:,} tokens) is swapped to disk. "
             f"Mention {page.id} to page it back in."
         )
 
@@ -511,7 +511,7 @@ class ContextKernel:
             ]
             if not tier_pages:
                 continue
-            sections.append(f"=== [ContextOS {tier.value}] ===")
+            sections.append(f"=== [OpenContext {tier.value}] ===")
             for page in tier_pages:
                 body = f"--- [{page.title} (id: {page.id})] ---\n{page.content}\n"
                 sections.append(body)
@@ -527,7 +527,7 @@ class ContextKernel:
 
         swapped = [p for p in self.pages.values() if p.status == PageStatus.SWAPPED]
         if swapped:
-            sections.append("=== [ContextOS swapped to disk] ===")
+            sections.append("=== [OpenContext swapped to disk] ===")
             for page in swapped:
                 line = f"- {page.tombstone}"
                 sections.append(line)

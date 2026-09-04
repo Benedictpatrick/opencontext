@@ -13,10 +13,10 @@ import httpx
 import pytest
 from starlette.testclient import TestClient
 
-from contextos.core.kernel import ContextKernel
-from contextos.interfaces import proxy as proxy_module
-from contextos.interfaces.proxy import ProxyConfig, create_proxy_app
-from contextos.storage.swap import SwapStorage
+from opencontext.core.kernel import ContextKernel
+from opencontext.interfaces import proxy as proxy_module
+from opencontext.interfaces.proxy import ProxyConfig, create_proxy_app
+from opencontext.storage.swap import SwapStorage
 
 
 @pytest.fixture
@@ -114,9 +114,9 @@ def test_health_is_unauthenticated(client):
     assert body["version"]
 
 
-def test_models_endpoint_lists_contextos_models(client):
+def test_models_endpoint_lists_opencontext_models(client):
     ids = [model["id"] for model in client.get("/v1/models").json()["data"]]
-    assert "contextos/vkernel" in ids
+    assert "opencontext/vkernel" in ids
 
 
 def test_metrics_separates_live_and_disk_swap_figures(client):
@@ -128,7 +128,7 @@ def test_metrics_separates_live_and_disk_swap_figures(client):
 def test_dashboard_is_served(client):
     response = client.get("/")
     assert response.status_code == 200
-    assert "ContextOS" in response.text
+    assert "OpenContext" in response.text
 
 
 # -- page content exposure ------------------------------------------------------------
@@ -219,11 +219,11 @@ def test_completions_forwards_to_upstream(client, monkeypatch):
 
     response = client.post(
         "/v1/chat/completions",
-        json={"model": "contextos/gpt-4o", "messages": [{"role": "user", "content": "hello"}]},
+        json={"model": "opencontext/gpt-4o", "messages": [{"role": "user", "content": "hello"}]},
     )
     assert response.status_code == 200
     assert response.json()["choices"][0]["message"]["content"] == "upstream reply"
-    assert upstream.captured_request["model"] == "gpt-4o", "the contextos/ prefix is stripped"
+    assert upstream.captured_request["model"] == "gpt-4o", "the opencontext/ prefix is stripped"
 
 
 def test_unknown_fields_are_passed_through(client, monkeypatch):
@@ -236,7 +236,7 @@ def test_unknown_fields_are_passed_through(client, monkeypatch):
     client.post(
         "/v1/chat/completions",
         json={
-            "model": "contextos/gpt-4o",
+            "model": "opencontext/gpt-4o",
             "messages": [{"role": "user", "content": "hello"}],
             "tools": [{"type": "function", "function": {"name": "get_weather"}}],
             "tool_choice": "auto",
@@ -259,7 +259,7 @@ def test_conversation_history_is_preserved(client, monkeypatch):
     client.post(
         "/v1/chat/completions",
         json={
-            "model": "contextos/vkernel",
+            "model": "opencontext/vkernel",
             "messages": [
                 {"role": "system", "content": "Be concise."},
                 {"role": "user", "content": "first question"},
@@ -286,12 +286,12 @@ def test_upstream_failure_returns_an_error_not_a_fabricated_reply(client, monkey
 
     response = client.post(
         "/v1/chat/completions",
-        json={"model": "contextos/vkernel", "messages": [{"role": "user", "content": "hi"}]},
+        json={"model": "opencontext/vkernel", "messages": [{"role": "user", "content": "hi"}]},
     )
     assert response.status_code == 502
     detail = response.json()["detail"]
     assert "could not reach" in detail.lower()
-    assert "CONTEXTOS_UPSTREAM" in detail
+    assert "OPENCONTEXT_UPSTREAM" in detail
     assert "choices" not in response.text, "no completion may be synthesised"
 
 
@@ -300,7 +300,7 @@ def test_upstream_error_status_is_relayed(client, monkeypatch):
 
     response = client.post(
         "/v1/chat/completions",
-        json={"model": "contextos/vkernel", "messages": [{"role": "user", "content": "hi"}]},
+        json={"model": "opencontext/vkernel", "messages": [{"role": "user", "content": "hi"}]},
     )
     assert response.status_code == 429
 
@@ -325,7 +325,7 @@ def test_streaming_returns_server_sent_events(client, monkeypatch):
 
     response = client.post(
         "/v1/chat/completions",
-        json={"model": "contextos/vkernel", "messages": [{"role": "user", "content": "hi"}], "stream": True},
+        json={"model": "opencontext/vkernel", "messages": [{"role": "user", "content": "hi"}], "stream": True},
     )
 
     assert response.status_code == 200
@@ -344,7 +344,7 @@ def test_streaming_failure_is_reported_inside_the_sse_envelope(client, monkeypat
 
     response = client.post(
         "/v1/chat/completions",
-        json={"model": "contextos/vkernel", "messages": [{"role": "user", "content": "hi"}], "stream": True},
+        json={"model": "opencontext/vkernel", "messages": [{"role": "user", "content": "hi"}], "stream": True},
     )
 
     assert response.status_code == 200
@@ -380,6 +380,6 @@ def test_traces_in_messages_are_compacted_on_ingest(client, monkeypatch, kernel)
     )
     client.post(
         "/v1/chat/completions",
-        json={"model": "contextos/vkernel", "messages": [{"role": "user", "content": trace}]},
+        json={"model": "opencontext/vkernel", "messages": [{"role": "user", "content": trace}]},
     )
     assert any(page.compacted for page in kernel.pages.values())

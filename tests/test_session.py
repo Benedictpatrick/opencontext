@@ -1,7 +1,7 @@
 """
 Tests for session persistence.
 
-ContextOS has no daemon, so without this a pin, a budget change or a curated
+OpenContext has no daemon, so without this a pin, a budget change or a curated
 working set is lost the moment the process exits. The rule these tests enforce is
 that a restored page always holds real content: anything whose source has gone is
 dropped and reported, never resurrected empty.
@@ -14,16 +14,16 @@ import os
 
 import pytest
 
-from contextos.core.kernel import ContextKernel
-from contextos.core.session import (
+from opencontext.core.kernel import ContextKernel
+from opencontext.core.session import (
     SESSION_VERSION,
     SessionError,
     restore_session,
     save_session,
     session_exists,
 )
-from contextos.core.types import PageStatus, PageTier
-from contextos.storage.swap import SwapStorage
+from opencontext.core.types import PageStatus, PageTier
+from opencontext.storage.swap import SwapStorage
 
 
 @pytest.fixture

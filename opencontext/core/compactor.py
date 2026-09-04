@@ -1,5 +1,5 @@
 """
-Traceback and code compaction for ContextOS.
+Traceback and code compaction for OpenContext.
 
 Two independent compactors:
 
@@ -19,7 +19,7 @@ import ast
 import re
 from typing import List, Optional, Tuple
 
-from contextos.core.tokens import estimate_tokens
+from opencontext.core.tokens import estimate_tokens
 
 # A Python traceback header, or an exception line like "module.Klass: message".
 _PY_HEADER = re.compile(r"^Traceback \(most recent call last\):", re.M)
@@ -140,7 +140,7 @@ class TracebackCompactor:
     @classmethod
     def _compact_python_traceback(cls, lines: List[str]) -> str:
         """Keep the last user frames and the exception line; drop library frames."""
-        result = ["[ContextOS] Python traceback reduced to user frames + root cause"]
+        result = ["[OpenContext] Python traceback reduced to user frames + root cause"]
 
         user_frames: List[str] = []
         library_frame_count = 0
@@ -215,7 +215,7 @@ class TracebackCompactor:
             else:
                 user_frames.append(line.strip())
 
-        result = ["[ContextOS] Node.js stack reduced to application frames"]
+        result = ["[OpenContext] Node.js stack reduced to application frames"]
         message = " ".join(message_lines) if message_lines else "unknown error"
         result.append(message if ":" in message else f"Error: {message}")
         if user_frames:
@@ -248,7 +248,7 @@ class TracebackCompactor:
             elif stripped:
                 message.append(stripped)
 
-        result = ["[ContextOS] Rust panic reduced to panic site + crate frames"]
+        result = ["[OpenContext] Rust panic reduced to panic site + crate frames"]
         if panic_site:
             result.append(panic_site)
         if message:
@@ -266,7 +266,7 @@ class TracebackCompactor:
             for l in lines
             if "/" in l and not cls._is_library_frame(l) and not l.strip().startswith("goroutine")
         ]
-        result = ["[ContextOS] Go panic reduced to message + application frames", message]
+        result = ["[OpenContext] Go panic reduced to message + application frames", message]
         if user_frames:
             result.append("Application frames: " + ", ".join(user_frames[:3]))
         return "\n".join(result)
@@ -285,7 +285,7 @@ class TracebackCompactor:
         if error_lines:
             kept = error_lines[:8]
             omitted = len(error_lines) - len(kept)
-            result = ["[ContextOS] Key error signals extracted"]
+            result = ["[OpenContext] Key error signals extracted"]
             result.extend(kept)
             if omitted > 0:
                 result.append(f"... {omitted} further error lines omitted")
@@ -296,7 +296,7 @@ class TracebackCompactor:
             return "\n".join(lines)
         omitted = len(lines) - head - tail
         return "\n".join(
-            lines[:head] + [f"... [ContextOS] {omitted} lines omitted ..."] + lines[-tail:]
+            lines[:head] + [f"... [OpenContext] {omitted} lines omitted ..."] + lines[-tail:]
         )
 
     @staticmethod
@@ -355,7 +355,7 @@ class CodeOutlineCompactor:
             return None
 
         lines = code.splitlines()
-        out: List[str] = [f"# [ContextOS outline] {filename} ({len(lines)} lines)"]
+        out: List[str] = [f"# [OpenContext outline] {filename} ({len(lines)} lines)"]
 
         module_doc = ast.get_docstring(tree)
         if module_doc:
@@ -465,7 +465,7 @@ class CodeOutlineCompactor:
         folded at all.
         """
         lines = code.splitlines()
-        out: List[str] = [f"# [ContextOS outline] {filename} ({len(lines)} lines)"]
+        out: List[str] = [f"# [OpenContext outline] {filename} ({len(lines)} lines)"]
 
         definition = re.compile(
             r"^\s*(?:export\s+)?(?:public\s+|private\s+|protected\s+|static\s+|final\s+)*"

@@ -1,12 +1,25 @@
 # Changelog
 
+## 0.3.0
+
+**Renamed from ContextOS to OpenContext.** The package is `opencontext`, the command
+is `opencontext`, environment variables are `OPENCONTEXT_*`, and on-disk state lives
+in `.opencontext/`. This is a breaking change with no compatibility shims: imports,
+scripts and any exported `CONTEXTOS_*` variables need updating.
+
+The benchmark fixtures are frozen snapshots of the source, so renaming the package
+changed them and the published figures moved with them. The table in the README was
+regenerated from `opencontext bench` and the test that compares the two still holds.
+The outline and tombstone rows also grew because their snapshot is the current
+kernel, which gained the coalescing logic below.
+
 ## 0.2.1
 
 The terminal UI does the job it was built for, rather than only reporting on it.
 
 ### The context window is now visible and extractable
 
-ContextOS exists to produce one thing — the context window an agent is charged for
+OpenContext exists to produce one thing — the context window an agent is charged for
 — and there was no way to see it or get it out. A new **Context** tab shows the
 assembled window verbatim, with a per-page breakdown of every token in it.
 
@@ -17,7 +30,7 @@ its own row, so the figures add up exactly.
 → `test_kernel.py::test_context_report_reconciles_to_the_measured_window`
 
 The pane renders literal text, not Rich markup. Headers look like
-`=== [ContextOS L1_WORKING] ===` and pages hold arbitrary source, so markup parsing
+`=== [OpenContext L1_WORKING] ===` and pages hold arbitrary source, so markup parsing
 silently swallowed anything in square brackets — including real code.
 → `test_interactive_tui.py::test_context_pane_shows_the_window_verbatim`
 
@@ -37,13 +50,13 @@ never restored empty.
 → `test_session.py`, `test_interactive_tui.py::test_session_survives_a_quit`
 
 Restoring re-runs eviction, since files may have grown since the save.
-`contextos tui --fresh` ignores a saved session.
+`opencontext tui --fresh` ignores a saved session.
 
 ### Chat does real work
 
 - Replies stream in as the model produces them, instead of the pane sitting frozen
   until the whole answer lands.
-- Conversation turns become episodic pages, so the tier ContextOS claims to manage
+- Conversation turns become episodic pages, so the tier OpenContext claims to manage
   now actually holds the UI's own conversation and ages out under the same budget.
   The assistant turn is ingested only once the reply exists — ingesting earlier
   would have created an empty page and charged the budget for it.
@@ -90,10 +103,10 @@ Restoring re-runs eviction, since files may have grown since the save.
 
 ### The published benchmark is reproducible
 
-`contextos bench` claimed its inputs were committed fixtures, and two of the five
+`opencontext bench` claimed its inputs were committed fixtures, and two of the five
 workloads actually read the working tree — the outline benchmark opened
-`contextos/core/kernel.py`, and the session benchmark walked the installed package.
-Editing ContextOS therefore moved the numbers printed in the README, and they had
+`opencontext/core/kernel.py`, and the session benchmark walked the installed package.
+Editing OpenContext therefore moved the numbers printed in the README, and they had
 already drifted. Both now read frozen snapshots under `tests/fixtures/`, and a test
 parses the README table and asserts it matches what the command prints, so the
 weaker version of the 0.1.0 failure — a table that was true and quietly went stale
@@ -101,7 +114,7 @@ weaker version of the 0.1.0 failure — a table that was true and quietly went s
 → `test_benchmark_fixtures.py`
 
 The republished figures are in the README. The session workload changed shape when
-its corpus was frozen, so its saving is now 74.8% over 48,578 tokens.
+its corpus was frozen, so its saving is now 74.8% over 48,657 tokens.
 
 
 ## 0.2.0
@@ -208,9 +221,9 @@ Nothing displays a figure it did not measure.
 - The proxy no longer synthesises a completion when the upstream is unreachable; it
   returns 502 with a reason.
   → `test_proxy.py::test_upstream_failure_returns_an_error_not_a_fabricated_reply`
-- `contextos chat` and the TUI chat call a real model, or say plainly that none is
+- `opencontext chat` and the TUI chat call a real model, or say plainly that none is
   configured.
-- The README's benchmark table had no code behind it. `contextos bench` now
+- The README's benchmark table had no code behind it. `opencontext bench` now
   produces every published figure from fixtures committed in `tests/fixtures/`.
 
 ### Terminal UI
@@ -231,16 +244,16 @@ different row, so the next keypress acted on the wrong page.
 
 ### Other
 
-- `contextos top` launched the Textual app; the rich monitor it advertised was
+- `opencontext top` launched the Textual app; the rich monitor it advertised was
   unreachable dead code. `top` and `tui` are now distinct.
   → `test_cli_and_bench.py::test_top_and_tui_are_distinct_commands`
 - `demo.py` imported a function that did not exist and raised on run. Removed.
-- Interface imports are lazy: `contextos mcp` no longer loads FastAPI, uvicorn and
+- Interface imports are lazy: `opencontext mcp` no longer loads FastAPI, uvicorn and
   Textual before serving, and an import error in one interface no longer breaks the
   others.
 - `/api/pages` returned full file content for every page, unauthenticated. Content
-  is now withheld unless explicitly enabled, and `CONTEXTOS_API_KEY` enables auth.
-- New: `contextos bench`, `contextos doctor`, `context_search`,
+  is now withheld unless explicitly enabled, and `OPENCONTEXT_API_KEY` enables auth.
+- New: `opencontext bench`, `opencontext doctor`, `context_search`,
   `context_outline_file`, `context_scan_workspace`.
 - Token estimation moved to `core/tokens.py` with a documented, tested accuracy
   against tiktoken, and opt-in exact counting.

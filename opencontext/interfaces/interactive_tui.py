@@ -69,20 +69,20 @@ from textual.widgets import (
     TextArea,
 )
 
-from contextos import __version__
-from contextos.core.compactor import CodeOutlineCompactor, TracebackCompactor
-from contextos.core.kernel import ContextKernel
-from contextos.core.pager import ContextPager
-from contextos.core.scenarios import run_doom_loop
-from contextos.core.session import (
+from opencontext import __version__
+from opencontext.core.compactor import CodeOutlineCompactor, TracebackCompactor
+from opencontext.core.kernel import ContextKernel
+from opencontext.core.pager import ContextPager
+from opencontext.core.scenarios import run_doom_loop
+from opencontext.core.session import (
     DEFAULT_SESSION_PATH,
     SessionError,
     restore_session,
     save_session,
     session_exists,
 )
-from contextos.core.types import PageStatus, PageTier
-from contextos.core.workspace import WorkspaceScanner
+from opencontext.core.types import PageStatus, PageTier
+from opencontext.core.workspace import WorkspaceScanner
 
 # Below this width the HUD sheds detail lines and the table sheds columns.
 NARROW_WIDTH = 100
@@ -238,7 +238,7 @@ class HelpScreen(ModalScreen):
 
     def compose(self) -> ComposeResult:
         with Vertical(id="help-container"):
-            yield Label("ContextOS keys", id="help-title")
+            yield Label("OpenContext keys", id="help-title")
             with VerticalScroll(id="help-body"):
                 for section, entries in self.HELP:
                     yield Label(section.upper(), classes="panel-title")
@@ -250,10 +250,10 @@ class HelpScreen(ModalScreen):
         self.app.pop_screen()
 
 
-class ContextOSApp(App):
-    """The interactive ContextOS terminal application."""
+class OpenContextApp(App):
+    """The interactive OpenContext terminal application."""
 
-    TITLE = "ContextOS"
+    TITLE = "OpenContext"
     SUB_TITLE = "context memory kernel"
 
     CSS = """
@@ -299,9 +299,9 @@ class ContextOSApp(App):
 
     /* Detail lines and the sparkline are hidden on a narrow terminal, where
        there is not enough width to render them without truncating. */
-    ContextOSApp.-narrow .hud-detail { display: none; }
-    ContextOSApp.-narrow #hud-sparkline { display: none; }
-    ContextOSApp.-narrow .wide-only { display: none; }
+    OpenContextApp.-narrow .hud-detail { display: none; }
+    OpenContextApp.-narrow #hud-sparkline { display: none; }
+    OpenContextApp.-narrow .wide-only { display: none; }
 
     ProgressBar { height: 1; }
     Bar > .bar--bar { color: #3fb950; background: #262c3a; }
@@ -327,15 +327,15 @@ class ContextOSApp(App):
     #vmm-right { width: 45%; height: 1fr; background: #131720;
                  border: round #262c3a; padding: 0 1; }
     #vmm-preview-scroll { height: 1fr; background: #0c0e14; border: solid #262c3a; }
-    ContextOSApp.-narrow #vmm-left { width: 100%; margin-right: 0; }
-    ContextOSApp.-narrow #vmm-right { display: none; }
+    OpenContextApp.-narrow #vmm-left { width: 100%; margin-right: 0; }
+    OpenContextApp.-narrow #vmm-right { display: none; }
 
     #chat-main { width: 65%; height: 1fr; background: #0c0e14;
                  border: round #262c3a; padding: 0 1; }
     #chat-side { width: 35%; height: 1fr; margin-left: 1; background: #131720;
                  border: round #262c3a; padding: 0 1; }
-    ContextOSApp.-narrow #chat-main { width: 100%; }
-    ContextOSApp.-narrow #chat-side { display: none; }
+    OpenContextApp.-narrow #chat-main { width: 100%; }
+    OpenContextApp.-narrow #chat-side { display: none; }
     #chat-input-row { height: 3; }
     #chat-input { width: 1fr; margin-right: 1; }
 
@@ -362,8 +362,8 @@ class ContextOSApp(App):
     #context-right { width: 48%; height: 1fr; background: #131720;
                      border: round #262c3a; padding: 0 1; }
     #context-scroll { height: 1fr; background: #0c0e14; border: solid #262c3a; }
-    ContextOSApp.-narrow #context-left { width: 100%; margin-right: 0; }
-    ContextOSApp.-narrow #context-right { display: none; }
+    OpenContextApp.-narrow #context-left { width: 100%; margin-right: 0; }
+    OpenContextApp.-narrow #context-right { display: none; }
     #context-summary { height: 4; padding: 0 1; background: #131720; }
 
     #help-container { width: 70%; height: 80%; background: #131720;
@@ -598,7 +598,7 @@ class ContextOSApp(App):
         self.set_interval(1.5, self._tick)
 
         chat_log = self.query_one("#chat-log", RichLog)
-        chat_log.write(f"[bold #f59e0b]ContextOS {__version__}[/bold #f59e0b]")
+        chat_log.write(f"[bold #f59e0b]OpenContext {__version__}[/bold #f59e0b]")
         chat_log.write(f"[dim]{len(self.kernel.pages)} pages indexed. ? for keys, /help for commands.[/dim]")
         if session_note:
             chat_log.write(f"[dim]{session_note}[/dim]")
@@ -746,7 +746,7 @@ class ContextOSApp(App):
             f"[bold #d29922]on disk[/bold #d29922]      {metrics.l3_pages} pages, {metrics.swapped_tokens:,} tok\n\n"
             f"Memory pressure  [{pressure_color} bold]{pressure}[/{pressure_color} bold]\n"
             f"Eviction policy  LRU, L2 before L1, L0 never\n"
-            f"Token counting   {'tiktoken' if os.environ.get('CONTEXTOS_TOKENIZER') == 'tiktoken' else 'heuristic'}"
+            f"Token counting   {'tiktoken' if os.environ.get('OPENCONTEXT_TOKENIZER') == 'tiktoken' else 'heuristic'}"
         )
 
         log = self.query_one("#kernel-log", RichLog)
@@ -837,7 +837,7 @@ class ContextOSApp(App):
         if len(text) > 20000:
             shown += f"\n\n... {len(text) - 20000:,} more characters not shown"
         # Rendered as literal text, never as markup. The window contains section
-        # headers like "=== [ContextOS L1_WORKING] ===" and arbitrary source code;
+        # headers like "=== [OpenContext L1_WORKING] ===" and arbitrary source code;
         # letting Rich interpret either would silently swallow bracketed content.
         body.update(Text(shown))
 
@@ -849,7 +849,7 @@ class ContextOSApp(App):
             return
 
         directory = os.path.abspath(self.root_dir or os.getcwd())
-        target = os.path.join(directory, f"contextos-context-{int(time.time())}.txt")
+        target = os.path.join(directory, f"opencontext-context-{int(time.time())}.txt")
         try:
             with open(target, "w", encoding="utf-8") as handle:
                 handle.write(report["context"])
@@ -1013,14 +1013,14 @@ class ContextOSApp(App):
             target = self.query_one("#config-llm", Static)
         except Exception:
             return
-        from contextos.llm import LLMConfig
+        from opencontext.llm import LLMConfig
 
         config = LLMConfig.from_env()
         target.update(
             f"Endpoint  {config.base_url}\n"
             f"Model     {config.model}\n"
             f"Location  {'local — nothing leaves this machine' if config.is_local else 'remote'}\n\n"
-            f"[dim]Set CONTEXTOS_UPSTREAM, CONTEXTOS_MODEL and CONTEXTOS_UPSTREAM_API_KEY to change.[/dim]"
+            f"[dim]Set OPENCONTEXT_UPSTREAM, OPENCONTEXT_MODEL and OPENCONTEXT_UPSTREAM_API_KEY to change.[/dim]"
         )
 
     def handle_chat_submit(self) -> None:
@@ -1037,7 +1037,7 @@ class ContextOSApp(App):
             self.handle_slash_command(text)
             return
 
-        # The question becomes an episodic page. This is the tier ContextOS says it
+        # The question becomes an episodic page. This is the tier OpenContext says it
         # manages, so the UI's own conversation has to live in it rather than beside
         # it — turns then age out under the same budget as everything else.
         self.pager.ingest_conversation_turn("user", text)
@@ -1076,11 +1076,11 @@ class ContextOSApp(App):
         at the setting to change. A plausible-looking invented reply is worse than
         none, because the user cannot tell it from a real one.
         """
-        from contextos.llm import LLMClient, LLMUnavailable
+        from opencontext.llm import LLMClient, LLMUnavailable
 
         system_prompt = (
             "You are a software engineering assistant answering questions about a "
-            "codebase. The context below was assembled by ContextOS from the user's "
+            "codebase. The context below was assembled by OpenContext from the user's "
             "workspace. Pages marked as swapped are on disk and not shown.\n\n"
             + self.kernel.assemble_context()
         )
@@ -1138,7 +1138,7 @@ class ContextOSApp(App):
         log.write("[bold #f85149]no model available[/bold #f85149]")
         log.write(f"[dim]{message}[/dim]")
         log.write(
-            "[dim]ContextOS still assembled and paged the context — only the answer "
+            "[dim]OpenContext still assembled and paged the context — only the answer "
             "needs a model. Press 5 to see the current endpoint.[/dim]"
         )
 
@@ -1275,9 +1275,9 @@ class ContextOSApp(App):
                 "stack backtrace:\n"
                 "   0: std::panicking::begin_panic\n"
                 "   1: core::panicking::panic_fmt\n"
-                "   2: contextos::vmm::verify_checksum\n"
-                "   3: contextos::vmm::page_table::commit\n"
-                "   4: contextos::main\n"
+                "   2: opencontext::vmm::verify_checksum\n"
+                "   3: opencontext::vmm::page_table::commit\n"
+                "   4: opencontext::main\n"
                 "note: run with `RUST_BACKTRACE=full` for a verbose backtrace"
             ),
         }
@@ -1344,7 +1344,7 @@ class ContextOSApp(App):
     @work(thread=True, exclusive=True)
     def run_benchmark_worker(self) -> None:
         """Run the real benchmark off the UI thread and stream results back."""
-        from contextos.benchmark import run_benchmark
+        from opencontext.benchmark import run_benchmark
 
         try:
             report = run_benchmark()
@@ -1552,5 +1552,5 @@ def run_interactive_tui(
     root_dir: Optional[str] = None,
     session_path: Optional[str] = DEFAULT_SESSION_PATH,
 ) -> None:
-    """Entry point for `contextos tui`."""
-    ContextOSApp(kernel, root_dir=root_dir, session_path=session_path).run()
+    """Entry point for `opencontext tui`."""
+    OpenContextApp(kernel, root_dir=root_dir, session_path=session_path).run()

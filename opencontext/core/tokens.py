@@ -1,7 +1,7 @@
 """
-Token estimation for ContextOS.
+Token estimation for OpenContext.
 
-By default ContextOS uses a deterministic, dependency-free heuristic rather than a
+By default OpenContext uses a deterministic, dependency-free heuristic rather than a
 real BPE tokenizer:
 
   * Budgets must be reproducible across machines and Python versions. A tokenizer
@@ -15,7 +15,7 @@ The heuristic is characters / 4 with a correction for whitespace-heavy text
 Measured against `tiktoken` (cl100k_base) over this repository's own source files:
 
     characters / 4          mean abs error 10.8%   worst 32.2%
-    ContextOS heuristic     mean abs error  7.1%   worst 21.1%
+    OpenContext heuristic     mean abs error  7.1%   worst 21.1%
 
 `tests/test_tokens.py` re-runs that measurement and fails if the error moves
 outside the documented tolerance, so the claim above is checked, not asserted.
@@ -23,11 +23,11 @@ outside the documented tolerance, so the claim above is checked, not asserted.
 Exact counting is available opt-in for users who want budgets to match a specific
 model's tokenizer and accept the extra dependency:
 
-    pip install "contextos[exact-tokens]"
-    export CONTEXTOS_TOKENIZER=tiktoken
+    pip install "opencontext[exact-tokens]"
+    export OPENCONTEXT_TOKENIZER=tiktoken
 
 When enabled and importable, `estimate_tokens` uses cl100k_base. If the import
-fails, ContextOS falls back to the heuristic rather than crashing.
+fails, OpenContext falls back to the heuristic rather than crashing.
 """
 
 from __future__ import annotations
@@ -49,7 +49,7 @@ def _get_encoder() -> Optional[Any]:
         return _encoder
 
     _encoder_resolved = True
-    if os.environ.get("CONTEXTOS_TOKENIZER", "").lower() != "tiktoken":
+    if os.environ.get("OPENCONTEXT_TOKENIZER", "").lower() != "tiktoken":
         _encoder = None
         return None
 
@@ -83,7 +83,7 @@ def estimate_tokens(text: str) -> int:
     """
     Estimate the number of LLM tokens in `text`.
 
-    Uses the exact tokenizer when the user has opted in via CONTEXTOS_TOKENIZER,
+    Uses the exact tokenizer when the user has opted in via OPENCONTEXT_TOKENIZER,
     otherwise the deterministic heuristic. Returns 0 for an empty string and at
     least 1 for anything non-empty.
     """

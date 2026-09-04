@@ -6,10 +6,10 @@ import os
 
 import pytest
 
-from contextos.core.kernel import ContextKernel
-from contextos.core.tokens import estimate_tokens
-from contextos.core.types import PageStatus, PageTier, PagingEventType
-from contextos.storage.swap import SwapStorage
+from opencontext.core.kernel import ContextKernel
+from opencontext.core.tokens import estimate_tokens
+from opencontext.core.types import PageStatus, PageTier, PagingEventType
+from opencontext.storage.swap import SwapStorage
 
 
 @pytest.fixture

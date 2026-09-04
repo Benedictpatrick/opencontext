@@ -1,18 +1,18 @@
 """
-ContextOS: a virtual memory kernel for LLM context windows.
+OpenContext: a virtual memory kernel for LLM context windows.
 
 Keeps the active working set inside a token budget, moves cold pages to local
 disk behind a one-line tombstone, and pages them back in when the model refers
 to them.
 """
 
-__version__ = "0.2.1"
+__version__ = "0.3.0"
 
-from contextos.core.kernel import ContextKernel
-from contextos.core.pager import ContextPager
-from contextos.core.compactor import CodeOutlineCompactor, TracebackCompactor
-from contextos.core.types import ContextPage, MemoryMetrics, PageStatus, PageTier
-from contextos.core.workspace import WorkspaceScanner
+from opencontext.core.kernel import ContextKernel
+from opencontext.core.pager import ContextPager
+from opencontext.core.compactor import CodeOutlineCompactor, TracebackCompactor
+from opencontext.core.types import ContextPage, MemoryMetrics, PageStatus, PageTier
+from opencontext.core.workspace import WorkspaceScanner
 
 __all__ = [
     "CodeOutlineCompactor",

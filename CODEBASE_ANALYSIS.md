@@ -1,23 +1,23 @@
-> **Historical document.** This is the audit of ContextOS **0.1.0** that preceded
+> **Historical document.** This is the audit of OpenContext **0.1.0** that preceded
 > the 0.2.0 rewrite. Every defect described below has since been fixed and pinned
 > by a regression test; see `CHANGELOG.md` for what changed and where. It is kept
 > because the reasoning explains why several design decisions in 0.2.0 are what
 > they are.
 
-# ContextOS — Codebase Analysis
+# OpenContext — Codebase Analysis
 
 Analysed 2026-09-04. ~2,900 lines of Python + an 833-line single-file dashboard, no git history, 19 tests passing.
 
 ## 1. What it is, and how it actually works
 
-ContextOS presents itself as a "virtual memory kernel" for LLM context windows. The metaphor maps onto real code:
+OpenContext presents itself as a "virtual memory kernel" for LLM context windows. The metaphor maps onto real code:
 
 | Concept | Reality |
 |---|---|
 | Page | `ContextPage` pydantic model (`core/types.py:28`) — id, title, tier, status, content, token_count |
 | RAM tiers | `PageTier` enum: L0_PINNED / L1_WORKING / L2_EPISODIC / L3_SWAP |
 | MMU | `ContextKernel` (`core/kernel.py`) — allocate, LRU evict, page-fault, metrics |
-| Swap disk | `SwapStorage` (`storage/swap.py`) — one SQLite table, `.contextos/swap.db` |
+| Swap disk | `SwapStorage` (`storage/swap.py`) — one SQLite table, `.opencontext/swap.db` |
 | Token accounting | `len(text) // 4` (`kernel.py:34`) |
 | Compaction | Regex/line heuristics over tracebacks and code (`core/compactor.py`) |
 
@@ -25,7 +25,7 @@ The actual mechanism is honest and quite small: pages live in a dict; `_enforce_
 
 Four front-ends sit on top: a Textual TUI (`interfaces/interactive_tui.py`, 1,552 lines — over half the codebase), a FastAPI app serving both a dashboard and an OpenAI-compatible proxy (`interfaces/proxy.py`), a hand-rolled MCP stdio server (`interfaces/mcp_server.py`), and a rich-based HUD (`interfaces/tui.py`) that nothing reaches.
 
-**Architecturally the important fact: there is no daemon.** `cmd_status`, `cmd_chat` and `cmd_tui` each call `get_or_create_workspace_kernel()` (`cli.py:40`), which builds a fresh in-memory kernel and rescans the whole tree. Nothing survives a process except swap rows. Every README reference to a "KERNEL DAEMON" or "background daemon" describes something that doesn't exist; `contextos serve` is a normal foreground uvicorn process.
+**Architecturally the important fact: there is no daemon.** `cmd_status`, `cmd_chat` and `cmd_tui` each call `get_or_create_workspace_kernel()` (`cli.py:40`), which builds a fresh in-memory kernel and rescans the whole tree. Nothing survives a process except swap rows. Every README reference to a "KERNEL DAEMON" or "background daemon" describes something that doesn't exist; `opencontext serve` is a normal foreground uvicorn process.
 
 ## 2. Correctness findings, most severe first
 
@@ -33,9 +33,9 @@ Four front-ends sit on top: a Textual TUI (`interfaces/interactive_tui.py`, 1,55
 
 `get_metrics()` (`kernel.py:254`) reads `swapped_tokens` from SQLite (`SUM(token_count)` over every row ever written) but derives `l3_pages` from the in-process dict. `page_fault()` rehydrates without deleting the swap row, so the number only ever grows.
 
-Verified against the real `.contextos/swap.db` in this repo:
+Verified against the real `.opencontext/swap.db` in this repo:
 
-- `contextos status` reports **52,726 swapped tokens / 16 pages**
+- `opencontext status` reports **52,726 swapped tokens / 16 pages**
 - the DB actually holds **36 rows**, including `file:src\legacy_engine.py` for a file that doesn't exist
 - a fresh `ContextKernel()` in an empty process reports `l3_pages=0, swapped_tokens=52726`
 
@@ -51,7 +51,7 @@ Confirmed: `compact_code(..., focus_symbol="delete_user")` on a 25-line class re
 
 ### 2.3 The streaming path always returns the fake response
 
-`/v1/chat/completions` (`proxy.py:194`) forwards `stream: true` upstream, then calls `upstream_resp.json()` on what is an SSE byte stream. That raises, the bare `except Exception: pass` at line 235 swallows it, and the client receives the canned `"[ContextOS Proxy Active]"` completion. Cursor and Continue.dev stream by default, so the advertised drop-in integration returns a placeholder for exactly the clients the README targets. Two adjacent problems on the same handler:
+`/v1/chat/completions` (`proxy.py:194`) forwards `stream: true` upstream, then calls `upstream_resp.json()` on what is an SSE byte stream. That raises, the bare `except Exception: pass` at line 235 swallows it, and the client receives the canned `"[OpenContext Proxy Active]"` completion. Cursor and Continue.dev stream by default, so the advertised drop-in integration returns a placeholder for exactly the clients the README targets. Two adjacent problems on the same handler:
 
 - `payload = req.model_dump()` (line 224) is built from a closed pydantic model, so `tools`, `tool_choice`, `response_format` and every other field are silently dropped — tool-calling clients break.
 - Conversation history is discarded: only `latest_user_prompt` plus the assembled context is forwarded (lines 213-216). Multi-turn chat loses prior assistant turns entirely.
@@ -86,11 +86,11 @@ Separately, the two ingest paths disagree on id format: `WorkspaceScanner` write
 
 ### 2.9 Import weight and coupling
 
-`cli.py` imports `run_proxy_server` and `run_mcp_server` at module top (lines 36-37) and `run_interactive_tui` at line 139, and `interfaces/__init__.py` eagerly imports all four interfaces. `contextos mcp` — a stdio server that needs neither — therefore loads FastAPI, uvicorn, httpx and Textual before serving a byte, and an import error in any interface breaks all of them.
+`cli.py` imports `run_proxy_server` and `run_mcp_server` at module top (lines 36-37) and `run_interactive_tui` at line 139, and `interfaces/__init__.py` eagerly imports all four interfaces. `opencontext mcp` — a stdio server that needs neither — therefore loads FastAPI, uvicorn, httpx and Textual before serving a byte, and an import error in any interface breaks all of them.
 
 ### 2.10 Smaller items
 
-- `demo.py:15` imports `cmd_demo` from `contextos.cli`, which doesn't exist. `python demo.py` raises `ImportError`. The file is dead.
+- `demo.py:15` imports `cmd_demo` from `opencontext.cli`, which doesn't exist. `python demo.py` raises `ImportError`. The file is dead.
 - Half the state model is declared and never assigned: `PageTier.L3_SWAP`, `PageStatus.COMPACTED` and `PageStatus.EVICTED` appear only in `tui.py`'s render maps (lines 119, 125, 126). Swapping changes `status` but not `tier`; compaction leaves status `ACTIVE`; `delete_page` pops the page rather than marking it EVICTED.
 - `/api/pages` (`proxy.py:78`) returns full file content for every scanned page, unauthenticated. The default bind is `127.0.0.1`, which contains it — but `--host 0.0.0.0` exposes the whole indexed tree, and there is no CORS policy or auth anywhere.
 - `api_chat` (`proxy.py:157`) posts the assembled workspace context to `api.openai.com` whenever `OPENAI_API_KEY` is set, with no opt-in prompt. `GEMINI_API_KEY` is read at line 140 and never used.
@@ -103,8 +103,8 @@ Separately, the two ingest paths disagree on id format: `WorkspaceScanner` write
 | "11 passed" test block | 19 tests pass |
 | Version 0.1.0 (badge, pyproject) | `cli.py:51` and `tui.py:51` print "v0.3.0" |
 | "Launch the VMM Daemon" / "KERNEL DAEMON" | No daemon; every command builds a fresh kernel and rescans |
-| `contextos chat "How does auth work?"` | `cmd_chat` (`cli.py:112`) never calls an LLM — it prints "Workspace indexed and required files loaded" |
-| `contextos top` = "htop-style HUD" | `cli.py:179` maps `top` to the Textual app; the rich HUD `ContextTopUI` (214 lines) is unreachable from the CLI |
+| `opencontext chat "How does auth work?"` | `cmd_chat` (`cli.py:112`) never calls an LLM — it prints "Workspace indexed and required files loaded" |
+| `opencontext top` = "htop-style HUD" | `cli.py:179` maps `top` to the Textual app; the rich HUD `ContextTopUI` (214 lines) is unreachable from the CLI |
 | Benchmarks table (90.2% / 88.0% / 99.1% / 80.5%) | No code produces these. `run_micro_benchmark` (`interactive_tui.py:1500`) measures page-fault *latency* only, and prints "0% data corruption, sub-millisecond retrieval confirmed" as a hardcoded string |
 | MCP `context_ingest_file` "with outline folding" | Outline folding is a no-op for class methods (§2.2) |
 | Proxy as drop-in for Cursor / Continue.dev | Streaming clients always get the placeholder response (§2.3) |
@@ -117,9 +117,9 @@ Separately, the two ingest paths disagree on id format: `WorkspaceScanner` write
 - **Thin:** compactor (3 tests, two asserting only `comp_tok < orig_tok` — the assertion that let §2.2 through); proxy (3 tests, all on the fallback path, none exercising an upstream, streaming, or `tools`); workspace (1 test, with the `or` that hides §2.5).
 - **Zero:** `mcp_server.py`, `storage/swap.py`, `interfaces/tui.py`, `cli.py`. Two confirmed bugs (§2.8) live in the untested MCP module; the swap-accounting bug (§2.1) lives in the untested storage module.
 
-Every test constructs its own `SwapStorage(tmp_path)`, which is good hygiene — but it also means no test ever observes the shared `.contextos/swap.db` accumulation that §2.1 describes.
+Every test constructs its own `SwapStorage(tmp_path)`, which is good hygiene — but it also means no test ever observes the shared `.opencontext/swap.db` accumulation that §2.1 describes.
 
-Suite hygiene: `pytest-asyncio` emits a config deprecation warning on every run, and the Textual tests leave "Task was destroyed but it is pending" noise at teardown. There is no `pytest.ini` / `[tool.pytest]` config, no `.gitignore`, and `__pycache__`, `.pytest_cache`, `contextos.egg-info` and `.contextos/swap.db` are all sitting in the working tree.
+Suite hygiene: `pytest-asyncio` emits a config deprecation warning on every run, and the Textual tests leave "Task was destroyed but it is pending" noise at teardown. There is no `pytest.ini` / `[tool.pytest]` config, no `.gitignore`, and `__pycache__`, `.pytest_cache`, `opencontext.egg-info` and `.opencontext/swap.db` are all sitting in the working tree.
 
 ## 5. If I were prioritising
 

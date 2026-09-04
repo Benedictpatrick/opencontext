@@ -15,9 +15,9 @@ from __future__ import annotations
 import time
 from typing import Any, Dict, List
 
-from contextos.core.kernel import ContextKernel
-from contextos.core.tokens import estimate_tokens
-from contextos.core.types import PageTier, PagingEventType
+from opencontext.core.kernel import ContextKernel
+from opencontext.core.tokens import estimate_tokens
+from opencontext.core.types import PageTier, PagingEventType
 
 # One failing tool call, as an agent would capture it. Reused verbatim across
 # retries so the scenario reproduces a genuine retry loop.

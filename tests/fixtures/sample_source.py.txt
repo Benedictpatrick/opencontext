@@ -1,5 +1,5 @@
 """
-The ContextOS virtual memory kernel.
+The OpenContext virtual memory kernel.
 
 Enforces a token budget over a set of context pages: allocates pages, evicts cold
 ones to disk under an LRU policy, rehydrates them on demand, and reports what it
@@ -14,9 +14,9 @@ import re
 import time
 from typing import Any, Dict, List, Optional, Tuple
 
-from contextos.core.compactor import TracebackCompactor
-from contextos.core.tokens import estimate_tokens
-from contextos.core.types import (
+from opencontext.core.compactor import TracebackCompactor
+from opencontext.core.tokens import estimate_tokens
+from opencontext.core.types import (
     ContextPage,
     MemoryMetrics,
     PageStatus,
@@ -24,7 +24,7 @@ from contextos.core.types import (
     PagingEvent,
     PagingEventType,
 )
-from contextos.storage.swap import SwapStorage
+from opencontext.storage.swap import SwapStorage
 
 MAX_RETAINED_EVENTS = 200
 DOOM_LOOP_THRESHOLD = 3
@@ -33,6 +33,17 @@ DOOM_LOOP_THRESHOLD = 3
 # tokens. A tombstone is around 24 tokens, so evicting a page smaller than that
 # makes the context window *larger* — the kernel would be paying to save nothing.
 MIN_AUTO_SWAP_BENEFIT_TOKENS = 16
+
+# Small episodic pages are individually not worth evicting (above), but a long
+# conversation is made entirely of them, and they must not be allowed to crowd out
+# the source the session is actually about. Once they exceed this share of the
+# budget the oldest are coalesced into a single page, which pays one tombstone for
+# all of them and is then evictable on the ordinary path.
+MAX_EPISODIC_BUDGET_SHARE = 0.35
+
+# The most recent turns stay whole: a digest is for history, not for the exchange
+# currently in progress.
+EPISODIC_TURNS_KEPT_WHOLE = 6
 
 
 class ContextKernel:
@@ -185,16 +196,24 @@ class ContextKernel:
                 total += estimate_tokens(page.tombstone)
         return total
 
-    def _enforce_budget(self) -> None:
+    def _enforce_budget(self, protect: Optional[str] = None) -> None:
         """
         Evict cold pages until working tokens fit the budget.
 
         Eviction order is L2 episodic before L1 working, oldest access first. L0
         is never evicted, so a large enough pinned set can exceed the budget; when
         that happens the kernel says so rather than failing silently.
+
+        `protect` exempts one page for the duration of the call. A page fault uses
+        it so that a page which is large relative to the budget cannot be evicted
+        by the same call that restored it: the caller asked for that content, and
+        handing back an emptied page while reporting success is worse than going
+        over budget and saying so.
         """
         if self._get_current_working_tokens() <= self.token_budget:
             return
+
+        self._coalesce_episodic_history()
 
         tier_weight = {PageTier.L2_EPISODIC: 0, PageTier.L1_WORKING_RAM: 1}
         candidates = [
@@ -202,6 +221,7 @@ class ContextKernel:
             for p in self.pages.values()
             if p.status == PageStatus.ACTIVE
             and p.tier != PageTier.L0_PINNED
+            and p.id != protect
             and self._swap_would_help(p)
         ]
         candidates.sort(key=lambda p: (tier_weight.get(p.tier, 2), p.last_accessed_at))
@@ -218,13 +238,92 @@ class ContextKernel:
                 for p in self.pages.values()
                 if p.tier == PageTier.L0_PINNED and p.status == PageStatus.ACTIVE
             )
-            self._log_event(
-                PagingEventType.BUDGET_EXCEEDED,
-                "system:budget",
-                0,
-                f"Over budget by {overshoot - self.token_budget:,} tokens after evicting every "
-                f"unpinned page. {pinned:,} tokens are pinned to L0 and cannot be evicted.",
-            )
+            over_by = f"Over budget by {overshoot - self.token_budget:,} tokens"
+            if protect is not None and protect in self.pages:
+                # Blaming the pinned set here would be wrong, and it may well be
+                # empty: the page just faulted in is what does not fit.
+                held = self.pages[protect]
+                reason = (
+                    f"{over_by}: '{held.title}' ({held.token_count:,} tokens) was just paged in "
+                    f"and is held in context for this request rather than evicted again."
+                )
+            else:
+                reason = (
+                    f"{over_by} after evicting every unpinned page. "
+                    f"{pinned:,} tokens are pinned to L0 and cannot be evicted."
+                )
+            self._log_event(PagingEventType.BUDGET_EXCEEDED, protect or "system:budget", 0, reason)
+
+    def _next_digest_index(self) -> int:
+        """
+        The next free digest number, derived from the pages themselves.
+
+        Deliberately not an instance counter. A restored session builds a fresh
+        kernel around pages that already contain `episodic:digest:0`; a counter
+        starting from zero would hand that id out a second time and overwrite the
+        restored history in place — and overwrite its swap row with it, losing the
+        conversation for good. Reading the number off the live page table cannot
+        drift from what actually exists.
+        """
+        used = []
+        for page_id in self.pages:
+            if page_id.startswith("episodic:digest:"):
+                suffix = page_id.rsplit(":", 1)[-1]
+                if suffix.isdigit():
+                    used.append(int(suffix))
+        return max(used) + 1 if used else 0
+
+    def _coalesce_episodic_history(self) -> None:
+        """
+        Fold old conversation turns into one page so they can be evicted together.
+
+        Individually, a turn is smaller than the tombstone that would replace it,
+        so `_swap_would_help` rejects it and it is never an eviction candidate. A
+        long conversation is nothing but such turns, and the effect was that the
+        kernel evicted *source files* to make room for chat — starving the working
+        set to hold history, which is precisely backwards for this tool.
+
+        Coalescing pays one tombstone for the whole run instead of one per turn.
+        The digest is an ordinary page: over budget it swaps to disk like anything
+        else, and mentioning it pages the full history back in.
+        """
+        small_turns = [
+            p
+            for p in self.pages.values()
+            if p.tier == PageTier.L2_EPISODIC
+            and p.status == PageStatus.ACTIVE
+            and not self._swap_would_help(p)
+        ]
+        if len(small_turns) <= EPISODIC_TURNS_KEPT_WHOLE:
+            return
+
+        small_turns.sort(key=lambda p: p.last_accessed_at)
+        stale = small_turns[:-EPISODIC_TURNS_KEPT_WHOLE]
+        if sum(p.token_count for p in stale) <= self.token_budget * MAX_EPISODIC_BUDGET_SHARE:
+            return
+
+        body = "\n\n".join(f"[{p.title}]\n{p.content}" for p in stale)
+        for page in stale:
+            del self.pages[page.id]
+
+        digest_id = f"episodic:digest:{self._next_digest_index()}"
+        digest = ContextPage(
+            id=digest_id,
+            title=f"Conversation history ({len(stale)} turns)",
+            tier=PageTier.L2_EPISODIC,
+            status=PageStatus.ACTIVE,
+            content=body,
+            token_count=estimate_tokens(body),
+            metadata={"coalesced_turns": len(stale)},
+        )
+        self.pages[digest_id] = digest
+        self._log_event(
+            PagingEventType.PAGE_ALLOCATED,
+            digest_id,
+            0,
+            f"Coalesced {len(stale)} conversation turns into one evictable page "
+            f"({digest.token_count:,} tokens)",
+        )
 
     # -- paging -----------------------------------------------------------------
 
@@ -243,7 +342,7 @@ class ContextKernel:
     def _tombstone_for(page: ContextPage) -> str:
         """The marker left in context while a page is on disk."""
         return (
-            f"[ContextOS] '{page.title}' ({page.token_count:,} tokens) is swapped to disk. "
+            f"[OpenContext] '{page.title}' ({page.token_count:,} tokens) is swapped to disk. "
             f"Mention {page.id} to page it back in."
         )
 
@@ -305,7 +404,7 @@ class ContextKernel:
                 0,
                 f"Page fault: restored '{restored.title}' ({restored.token_count:,} tokens) from disk",
             )
-            self._enforce_budget()
+            self._enforce_budget(protect=page_id)
             return restored
 
         if page.status != PageStatus.SWAPPED:
@@ -340,7 +439,7 @@ class ContextKernel:
             f"Page fault: restored '{page.title}' ({page.token_count:,} tokens) into context",
         )
 
-        self._enforce_budget()
+        self._enforce_budget(protect=page_id)
         return page
 
     def touch_or_fault(self, text_query: str) -> List[str]:
@@ -412,7 +511,7 @@ class ContextKernel:
             ]
             if not tier_pages:
                 continue
-            sections.append(f"=== [ContextOS {tier.value}] ===")
+            sections.append(f"=== [OpenContext {tier.value}] ===")
             for page in tier_pages:
                 body = f"--- [{page.title} (id: {page.id})] ---\n{page.content}\n"
                 sections.append(body)
@@ -428,7 +527,7 @@ class ContextKernel:
 
         swapped = [p for p in self.pages.values() if p.status == PageStatus.SWAPPED]
         if swapped:
-            sections.append("=== [ContextOS swapped to disk] ===")
+            sections.append("=== [OpenContext swapped to disk] ===")
             for page in swapped:
                 line = f"- {page.tombstone}"
                 sections.append(line)

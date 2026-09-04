@@ -21,11 +21,11 @@ import json
 import sys
 from typing import Any, Callable, Dict, List, Optional, TextIO
 
-from contextos import __version__
-from contextos.core.compactor import CodeOutlineCompactor, TracebackCompactor
-from contextos.core.kernel import ContextKernel
-from contextos.core.pager import ContextPager
-from contextos.core.workspace import WorkspaceScanner
+from opencontext import __version__
+from opencontext.core.compactor import CodeOutlineCompactor, TracebackCompactor
+from opencontext.core.kernel import ContextKernel
+from opencontext.core.pager import ContextPager
+from opencontext.core.workspace import WorkspaceScanner
 
 PROTOCOL_VERSION = "2024-11-05"
 
@@ -37,8 +37,8 @@ INVALID_PARAMS = -32602
 INTERNAL_ERROR = -32603
 
 
-class ContextOSMCPServer:
-    """Serves the ContextOS kernel over MCP stdio."""
+class OpenContextMCPServer:
+    """Serves the OpenContext kernel over MCP stdio."""
 
     def __init__(self, kernel: Optional[ContextKernel] = None, root_dir: Optional[str] = None):
         self.kernel = kernel or ContextKernel()
@@ -355,7 +355,7 @@ class ContextOSMCPServer:
                 {
                     "protocolVersion": PROTOCOL_VERSION,
                     "capabilities": {"tools": {"listChanged": False}},
-                    "serverInfo": {"name": "contextos", "version": __version__},
+                    "serverInfo": {"name": "opencontext", "version": __version__},
                 },
             )
 
@@ -443,7 +443,7 @@ class ContextOSMCPServer:
 
 
 def run_mcp_server(root_dir: Optional[str] = None) -> None:
-    """Entry point for `contextos mcp`."""
+    """Entry point for `opencontext mcp`."""
     # Diagnostics go to stderr: stdout is the protocol channel.
-    print("ContextOS MCP server ready on stdio", file=sys.stderr, flush=True)
-    ContextOSMCPServer(root_dir=root_dir).run_stdio_loop()
+    print("OpenContext MCP server ready on stdio", file=sys.stderr, flush=True)
+    OpenContextMCPServer(root_dir=root_dir).run_stdio_loop()

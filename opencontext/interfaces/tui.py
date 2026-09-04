@@ -1,12 +1,12 @@
 """
-`contextos top` — a read-only terminal monitor for the kernel, in the spirit of htop.
+`opencontext top` — a read-only terminal monitor for the kernel, in the spirit of htop.
 
 Renders a single self-sizing frame that adapts to the terminal width, and refreshes
 in place until interrupted. Every figure shown is read from kernel telemetry; none
 is hardcoded.
 
 This is deliberately separate from the interactive Textual application
-(`contextos tui`): `top` is for watching, `tui` is for driving.
+(`opencontext tui`): `top` is for watching, `tui` is for driving.
 """
 
 from __future__ import annotations
@@ -28,9 +28,9 @@ from rich.panel import Panel
 from rich.table import Table
 from rich.text import Text
 
-from contextos import __version__
-from contextos.core.kernel import ContextKernel
-from contextos.core.types import PageStatus, PageTier, PagingEventType
+from opencontext import __version__
+from opencontext.core.kernel import ContextKernel
+from opencontext.core.types import PageStatus, PageTier, PagingEventType
 
 TIER_LABELS = {
     PageTier.L0_PINNED: ("L0", "bold #a371f7"),
@@ -70,7 +70,7 @@ class ContextTopUI:
     def render_header(self) -> Panel:
         metrics = self.kernel.get_metrics()
         header = Text()
-        header.append(f" ContextOS {__version__} ", style="bold black on #f59e0b")
+        header.append(f" OpenContext {__version__} ", style="bold black on #f59e0b")
         if self.width >= 70:
             header.append("  context memory monitor  ", style="#8b949e")
         header.append(f"{len(self.kernel.pages)} pages  ", style="#e6edf3")
@@ -173,7 +173,7 @@ class ContextTopUI:
 
         if not pages:
             return Panel(
-                Text("No pages allocated. Run `contextos scan` to index a project.", style="dim"),
+                Text("No pages allocated. Run `opencontext scan` to index a project.", style="dim"),
                 title="[bold #e6edf3]pages[/bold #e6edf3]",
                 border_style="#30363d",
             )
@@ -223,7 +223,7 @@ class ContextTopUI:
         footer.append(" Ctrl+C ", style="bold black on #8b949e")
         footer.append(" exit    ", style="dim #8b949e")
         footer.append("read-only monitor — run ", style="dim #8b949e")
-        footer.append("contextos tui", style="#f59e0b")
+        footer.append("opencontext tui", style="#f59e0b")
         footer.append(" to page memory in and out", style="dim #8b949e")
         return footer
 
@@ -268,11 +268,11 @@ class ContextTopUI:
                     time.sleep(refresh_rate)
                     count += 1
         except KeyboardInterrupt:
-            self.console.print("[dim]ContextOS monitor stopped.[/dim]")
+            self.console.print("[dim]OpenContext monitor stopped.[/dim]")
 
 
 def run_top(kernel: ContextKernel, refresh_rate: float = 1.0, once: bool = False) -> None:
-    """Entry point for `contextos top`."""
+    """Entry point for `opencontext top`."""
     ui = ContextTopUI(kernel)
     if once:
         ui.print_snapshot()

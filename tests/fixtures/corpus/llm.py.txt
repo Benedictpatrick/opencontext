@@ -1,17 +1,17 @@
 """
 Minimal client for OpenAI-compatible chat endpoints.
 
-ContextOS does not bundle a provider SDK. Anything that speaks the OpenAI chat
+OpenContext does not bundle a provider SDK. Anything that speaks the OpenAI chat
 completions shape works, which covers local runtimes (Ollama, llama.cpp, LM Studio,
 vLLM) and hosted providers alike — including Anthropic, via its compatibility
 endpoint. Configuration is entirely by environment:
 
-    CONTEXTOS_UPSTREAM          base URL, default http://localhost:11434/v1
-    CONTEXTOS_UPSTREAM_API_KEY  bearer token, if the endpoint needs one
-    CONTEXTOS_MODEL             model name to request
+    OPENCONTEXT_UPSTREAM          base URL, default http://localhost:11434/v1
+    OPENCONTEXT_UPSTREAM_API_KEY  bearer token, if the endpoint needs one
+    OPENCONTEXT_MODEL             model name to request
 
 When no model server is reachable, callers get `LLMUnavailable` and are expected
-to say so. ContextOS never substitutes generated-looking text for a real answer.
+to say so. OpenContext never substitutes generated-looking text for a real answer.
 """
 
 from __future__ import annotations
@@ -42,9 +42,9 @@ class LLMConfig:
     @classmethod
     def from_env(cls) -> "LLMConfig":
         return cls(
-            base_url=os.environ.get("CONTEXTOS_UPSTREAM", DEFAULT_UPSTREAM).rstrip("/"),
-            model=os.environ.get("CONTEXTOS_MODEL", DEFAULT_MODEL),
-            api_key=os.environ.get("CONTEXTOS_UPSTREAM_API_KEY") or None,
+            base_url=os.environ.get("OPENCONTEXT_UPSTREAM", DEFAULT_UPSTREAM).rstrip("/"),
+            model=os.environ.get("OPENCONTEXT_MODEL", DEFAULT_MODEL),
+            api_key=os.environ.get("OPENCONTEXT_UPSTREAM_API_KEY") or None,
         )
 
     @property
@@ -117,8 +117,8 @@ class LLMClient:
         except httpx.HTTPError as error:
             raise LLMUnavailable(
                 f"No model server reachable at {self.config.base_url} ({error}).\n"
-                "Start one locally (`ollama serve`) or point ContextOS at a provider:\n"
-                "  set CONTEXTOS_UPSTREAM, CONTEXTOS_UPSTREAM_API_KEY and CONTEXTOS_MODEL"
+                "Start one locally (`ollama serve`) or point OpenContext at a provider:\n"
+                "  set OPENCONTEXT_UPSTREAM, OPENCONTEXT_UPSTREAM_API_KEY and OPENCONTEXT_MODEL"
             ) from error
 
         if response.status_code != 200:

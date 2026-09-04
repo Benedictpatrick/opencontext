@@ -1,10 +1,10 @@
 """
-Reproducible benchmark for ContextOS.
+Reproducible benchmark for OpenContext.
 
-Every number ContextOS publishes comes from here. The inputs are committed under
-`tests/fixtures/`, so anyone can run `contextos bench` and get the same figures on
+Every number OpenContext publishes comes from here. The inputs are committed under
+`tests/fixtures/`, so anyone can run `opencontext bench` and get the same figures on
 their own machine. Nothing here reads the working tree: an input that changed when
-ContextOS itself was edited would make the published numbers unreproducible.
+OpenContext itself was edited would make the published numbers unreproducible.
 
 What is measured:
 
@@ -16,7 +16,7 @@ What is measured:
 
 What is deliberately *not* measured: an end-to-end saving against a specific
 model's billing. That depends on the model, the prompt and the caching policy,
-so ContextOS does not claim it.
+so OpenContext does not claim it.
 """
 
 from __future__ import annotations
@@ -29,13 +29,13 @@ import time
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Tuple
 
-from contextos.core.compactor import CodeOutlineCompactor, TracebackCompactor
-from contextos.core.kernel import ContextKernel
-from contextos.core.pager import ContextPager
-from contextos.core.scenarios import FAILING_TOOL_CALL
-from contextos.core.tokens import estimate_tokens
-from contextos.core.types import PageTier
-from contextos.storage.swap import SwapStorage
+from opencontext.core.compactor import CodeOutlineCompactor, TracebackCompactor
+from opencontext.core.kernel import ContextKernel
+from opencontext.core.pager import ContextPager
+from opencontext.core.scenarios import FAILING_TOOL_CALL
+from opencontext.core.tokens import estimate_tokens
+from opencontext.core.types import PageTier
+from opencontext.storage.swap import SwapStorage
 
 FIXTURE_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "tests", "fixtures")
 
@@ -113,7 +113,7 @@ def _sample_source_file() -> str:
     A real source file for the outline and tombstone benchmarks.
 
     This is a frozen snapshot of the kernel's own source, committed as a fixture
-    rather than read from `contextos/core/kernel.py` at run time. Reading the live
+    rather than read from `opencontext/core/kernel.py` at run time. Reading the live
     file made every published figure a function of the working tree: editing the
     kernel silently moved the numbers in the README, which is the one thing a
     benchmark must not do. The snapshot is real production code, and it is the
@@ -128,7 +128,7 @@ def _corpus_files() -> List[Tuple[str, str]]:
     `(filename, content)` pairs sorted by name.
 
     Committed for the same reason as the snapshot above: the session benchmark
-    used to walk the installed package, so adding a module to ContextOS changed
+    used to walk the installed package, so adding a module to OpenContext changed
     the published saving. Fixtures are stored with a `.txt` suffix so they are
     inert — not importable, not collected by pytest, not linted as project code.
     """
@@ -178,7 +178,7 @@ def bench_outline() -> BenchmarkResult:
 def bench_tombstone() -> BenchmarkResult:
     """What a file costs in context once it has been swapped out."""
     source = _sample_source_file()
-    workdir = tempfile.mkdtemp(prefix="contextos-bench-")
+    workdir = tempfile.mkdtemp(prefix="opencontext-bench-")
     try:
         kernel = ContextKernel(
             token_budget=100_000, swap_storage=SwapStorage(os.path.join(workdir, "swap.db"))
@@ -206,7 +206,7 @@ def bench_mixed_session() -> BenchmarkResult:
     benchmark built only from repeated identical tracebacks would measure the
     compactor several times over and call it a session.
     """
-    workdir = tempfile.mkdtemp(prefix="contextos-session-")
+    workdir = tempfile.mkdtemp(prefix="opencontext-session-")
     try:
         kernel = ContextKernel(
             token_budget=16_000, swap_storage=SwapStorage(os.path.join(workdir, "swap.db"))
@@ -224,7 +224,7 @@ def bench_mixed_session() -> BenchmarkResult:
 
         # Files the agent opened while working, from the frozen corpus. A real
         # session ranges over far more source than fits the budget — that is the
-        # condition ContextOS exists for, so the fixture has to reach it rather
+        # condition OpenContext exists for, so the fixture has to reach it rather
         # than stopping just above the line.
         for filename, content in _corpus_files():
             raw_tokens += estimate_tokens(content)
@@ -258,7 +258,7 @@ def bench_mixed_session() -> BenchmarkResult:
 
 def bench_page_fault_latency(pages: int = 50, samples: int = 25) -> Dict[str, float]:
     """Measure the wall-clock cost of restoring a page from disk."""
-    workdir = tempfile.mkdtemp(prefix="contextos-latency-")
+    workdir = tempfile.mkdtemp(prefix="opencontext-latency-")
     try:
         kernel = ContextKernel(
             token_budget=1_000_000, swap_storage=SwapStorage(os.path.join(workdir, "swap.db"))
@@ -299,8 +299,8 @@ def run_benchmark(include_latency: bool = True) -> BenchmarkReport:
     import platform
     import sys
 
-    from contextos import __version__
-    from contextos.core.tokens import _get_encoder
+    from opencontext import __version__
+    from opencontext.core.tokens import _get_encoder
 
     report = BenchmarkReport(
         results=[
@@ -311,7 +311,7 @@ def run_benchmark(include_latency: bool = True) -> BenchmarkReport:
             bench_mixed_session(),
         ],
         environment={
-            "contextos_version": __version__,
+            "opencontext_version": __version__,
             "python": platform.python_version(),
             "platform": platform.system(),
             "tokenizer": "tiktoken cl100k_base" if _get_encoder() else "built-in heuristic",

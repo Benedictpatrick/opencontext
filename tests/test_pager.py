@@ -6,12 +6,12 @@ import os
 
 import pytest
 
-from contextos.core.ids import content_digest, error_page_id, file_page_id, normalize_path
-from contextos.core.kernel import ContextKernel
-from contextos.core.pager import ContextPager
-from contextos.core.types import PageStatus, PageTier
-from contextos.core.workspace import WorkspaceScanner
-from contextos.storage.swap import SwapStorage
+from opencontext.core.ids import content_digest, error_page_id, file_page_id, normalize_path
+from opencontext.core.kernel import ContextKernel
+from opencontext.core.pager import ContextPager
+from opencontext.core.types import PageStatus, PageTier
+from opencontext.core.workspace import WorkspaceScanner
+from opencontext.storage.swap import SwapStorage
 
 
 @pytest.fixture
@@ -72,7 +72,7 @@ def test_content_digest_is_stable_across_processes():
     assert content_digest("some error text") == content_digest("some error text")
     assert content_digest("a") != content_digest("b")
     # A known value pins the algorithm, so a change is deliberate rather than silent.
-    assert content_digest("contextos") == "0e3d0a2c4bd2"[:0] or len(content_digest("contextos")) == 12
+    assert content_digest("opencontext") == "0e3d0a2c4bd2"[:0] or len(content_digest("opencontext")) == 12
 
 
 def test_error_ids_do_not_collide_for_different_traces():

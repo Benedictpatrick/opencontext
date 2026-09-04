@@ -1,7 +1,7 @@
 """
 Session persistence.
 
-ContextOS has no daemon: each command builds its own kernel. Without persistence
+OpenContext has no daemon: each command builds its own kernel. Without persistence
 that means pinning a page, setting a budget or arranging a working set is undone
 the moment you quit, which makes those actions close to pointless. A session file
 carries that arrangement across runs.
@@ -28,11 +28,11 @@ import os
 import time
 from typing import Any, Dict, List, Optional
 
-from contextos.core.kernel import ContextKernel
-from contextos.core.types import ContextPage, PageStatus, PageTier
+from opencontext.core.kernel import ContextKernel
+from opencontext.core.types import ContextPage, PageStatus, PageTier
 
 SESSION_VERSION = 2
-DEFAULT_SESSION_PATH = os.path.join(".contextos", "session.json")
+DEFAULT_SESSION_PATH = os.path.join(".opencontext", "session.json")
 
 # Content this large is not inlined into the session file; the page is dropped
 # instead, with a note. Keeps the file readable and bounded.

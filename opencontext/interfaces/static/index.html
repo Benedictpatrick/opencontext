@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ContextOS | Virtual Context Memory Kernel</title>
+  <title>OpenContext | Virtual Context Memory Kernel</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -515,7 +515,7 @@
     <div class="brand">
       <div class="brand-logo">C</div>
       <div class="brand-title">
-        ContextOS
+        OpenContext
         <span class="brand-badge">vKernel 0.1.0</span>
       </div>
     </div>
@@ -571,7 +571,7 @@
     <!-- Navigation Tabs -->
     <div class="nav-tabs">
       <button class="nav-tab active" onclick="switchTab(event, 'tab-pages')">📑 Memory Page Explorer</button>
-      <button class="nav-tab" onclick="switchTab(event, 'tab-chat')">💬 ContextOS Live Chat</button>
+      <button class="nav-tab" onclick="switchTab(event, 'tab-chat')">💬 OpenContext Live Chat</button>
       <button class="nav-tab" onclick="switchTab(event, 'tab-compactor')">✂️ Traceback Compactor Lab</button>
     </div>
 
@@ -601,12 +601,12 @@
       </div>
     </div>
 
-    <!-- Tab 2: ContextOS Live Chat -->
+    <!-- Tab 2: OpenContext Live Chat -->
     <div id="tab-chat" class="tab-content">
       <div class="chat-layout">
         <div class="chat-box">
           <div class="chat-messages" id="chat-messages">
-            <div class="chat-bubble assistant">👋 Hello! ContextOS is managing your project's context. Ask any question about your codebase or instructions—ContextOS will dynamically page in only the relevant files.</div>
+            <div class="chat-bubble assistant">👋 Hello! OpenContext is managing your project's context. Ask any question about your codebase or instructions—OpenContext will dynamically page in only the relevant files.</div>
           </div>
           <div class="chat-input-row">
             <input type="text" id="chat-input" class="chat-input" placeholder="Ask anything about your code or architecture..." onkeydown="if(event.key==='Enter') sendChat()">
@@ -617,7 +617,7 @@
         <div class="paged-sidebar">
           <div class="sidebar-title">⚡ Autonomous Paging Activity</div>
           <div id="paging-stream">
-            <div style="font-size: 12px; color: var(--text-muted);">No page faults triggered yet. Ask a question to see ContextOS page files in real time.</div>
+            <div style="font-size: 12px; color: var(--text-muted);">No page faults triggered yet. Ask a question to see OpenContext page files in real time.</div>
           </div>
         </div>
       </div>
@@ -836,7 +836,7 @@
           body: JSON.stringify({ message: text })
         });
       } catch (err) {
-        // No answer is invented when no model is reachable. ContextOS still did
+        // No answer is invented when no model is reachable. OpenContext still did
         // its work - assembling and paging the context - and says so.
         chatBox.innerHTML += '<div class="chat-bubble assistant" style="border-color:var(--red);">' +
           '<strong>No model available.</strong><br>' + escapeHtml(err.message) +
@@ -905,7 +905,7 @@
       } else {
         body.textContent = (page.preview || '') +
           '\n\n--- Preview only. This server was started without content exposure; ' +
-          'set CONTEXTOS_EXPOSE_CONTENT=1 to serve full file contents over HTTP. ---';
+          'set OPENCONTEXT_EXPOSE_CONTENT=1 to serve full file contents over HTTP. ---';
       }
       document.getElementById('inspect-modal').classList.add('active');
     }

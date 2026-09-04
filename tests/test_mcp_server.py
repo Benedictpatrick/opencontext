@@ -13,19 +13,19 @@ import json
 
 import pytest
 
-from contextos.core.kernel import ContextKernel
-from contextos.interfaces.mcp_server import METHOD_NOT_FOUND, PARSE_ERROR, ContextOSMCPServer
-from contextos.storage.swap import SwapStorage
+from opencontext.core.kernel import ContextKernel
+from opencontext.interfaces.mcp_server import METHOD_NOT_FOUND, PARSE_ERROR, OpenContextMCPServer
+from opencontext.storage.swap import SwapStorage
 
 
 @pytest.fixture
 def server(tmp_path):
     kernel = ContextKernel(token_budget=8000, swap_storage=SwapStorage(str(tmp_path / "swap.db")))
     kernel.allocate_page("file:auth.py", "auth.py", "def verify_token(t):\n    return t\n" * 10)
-    return ContextOSMCPServer(kernel=kernel, root_dir=str(tmp_path))
+    return OpenContextMCPServer(kernel=kernel, root_dir=str(tmp_path))
 
 
-def call_tool(server: ContextOSMCPServer, name: str, arguments=None):
+def call_tool(server: OpenContextMCPServer, name: str, arguments=None):
     response = server.handle_message(
         {"jsonrpc": "2.0", "id": 1, "method": "tools/call",
          "params": {"name": name, "arguments": arguments or {}}}
@@ -40,7 +40,7 @@ def test_initialize_returns_a_handshake(server):
     response = server.handle_message({"jsonrpc": "2.0", "id": 1, "method": "initialize"})
     assert response["id"] == 1
     assert response["result"]["protocolVersion"]
-    assert response["result"]["serverInfo"]["name"] == "contextos"
+    assert response["result"]["serverInfo"]["name"] == "opencontext"
 
 
 def test_notifications_receive_no_response(server):

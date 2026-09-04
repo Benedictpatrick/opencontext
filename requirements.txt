@@ -7,9 +7,9 @@ pydantic>=2.0.0
 rich>=13.0.0
 httpx>=0.24.0
 
-textual>=0.80.0      # contextos tui
-fastapi>=0.100.0     # contextos serve
-uvicorn>=0.20.0      # contextos serve
+textual>=0.80.0      # opencontext tui
+fastapi>=0.100.0     # opencontext serve
+uvicorn>=0.20.0      # opencontext serve
 tiktoken>=0.5.0      # optional: exact token counting
 
 pytest>=7.0.0

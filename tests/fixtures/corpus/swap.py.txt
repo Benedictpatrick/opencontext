@@ -16,7 +16,7 @@ import threading
 import time
 from typing import Any, Dict, List, Optional
 
-from contextos.core.types import ContextPage, PageStatus, PageTier
+from opencontext.core.types import ContextPage, PageStatus, PageTier
 
 SCHEMA_VERSION = 2
 
@@ -30,7 +30,7 @@ class SwapStorage:
 
     def __init__(self, db_path: Optional[str] = None):
         if db_path is None:
-            base_dir = os.path.join(os.getcwd(), ".contextos")
+            base_dir = os.path.join(os.getcwd(), ".opencontext")
             os.makedirs(base_dir, exist_ok=True)
             db_path = os.path.join(base_dir, "swap.db")
         else:

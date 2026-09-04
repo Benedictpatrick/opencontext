@@ -14,9 +14,9 @@ import re
 
 import pytest
 
-from contextos.core.kernel import ContextKernel
-from contextos.interfaces.interactive_tui import ContextOSApp
-from contextos.storage.swap import SwapStorage
+from opencontext.core.kernel import ContextKernel
+from opencontext.interfaces.interactive_tui import OpenContextApp
+from opencontext.storage.swap import SwapStorage
 
 TERMINAL_SIZES = [(80, 24), (100, 30), (120, 40), (160, 50)]
 
@@ -38,7 +38,7 @@ def build_kernel(tmp_path, pages: int = 6) -> ContextKernel:
     return kernel
 
 
-def rendered_text(app: ContextOSApp) -> str:
+def rendered_text(app: OpenContextApp) -> str:
     """Extract the visible text of the current frame from an exported screenshot."""
     svg = app.export_screenshot()
     chunks = re.findall(r"<text[^>]*>(.*?)</text>", svg, re.S)
@@ -58,7 +58,7 @@ async def test_hud_cards_share_one_height(tmp_path, width, height):
     shared height it grew taller than its neighbours and the row rendered with
     three cards closing early against one long one.
     """
-    app = ContextOSApp(kernel=build_kernel(tmp_path), session_path=None)
+    app = OpenContextApp(kernel=build_kernel(tmp_path), session_path=None)
     async with app.run_test(size=(width, height)) as pilot:
         await pilot.pause()
         heights = {
@@ -73,7 +73,7 @@ async def test_hud_cards_share_one_height(tmp_path, width, height):
 @pytest.mark.parametrize("width,height", TERMINAL_SIZES)
 async def test_no_horizontal_overflow(tmp_path, width, height):
     """No visible widget may extend past the right edge of the terminal."""
-    app = ContextOSApp(kernel=build_kernel(tmp_path), session_path=None)
+    app = OpenContextApp(kernel=build_kernel(tmp_path), session_path=None)
     async with app.run_test(size=(width, height)) as pilot:
         await pilot.pause()
         overflowing = [
@@ -94,7 +94,7 @@ async def test_hud_titles_render_untruncated(tmp_path, width, height):
     'AUTONOMOUS PA'. Titles are now short enough to fit the narrowest supported
     terminal.
     """
-    app = ContextOSApp(kernel=build_kernel(tmp_path), session_path=None)
+    app = OpenContextApp(kernel=build_kernel(tmp_path), session_path=None)
     async with app.run_test(size=(width, height)) as pilot:
         await pilot.pause()
         text = rendered_text(app)
@@ -110,7 +110,7 @@ async def test_page_table_visible_on_small_terminal(tmp_path):
     Previously the HUD consumed the entire 24-row viewport and everything below it
     rendered as a bare rule.
     """
-    app = ContextOSApp(kernel=build_kernel(tmp_path), session_path=None)
+    app = OpenContextApp(kernel=build_kernel(tmp_path), session_path=None)
     async with app.run_test(size=(80, 24)) as pilot:
         await pilot.pause()
         app.action_switch_tab("tab-pages")
@@ -125,7 +125,7 @@ async def test_page_table_visible_on_small_terminal(tmp_path):
 @pytest.mark.asyncio
 async def test_narrow_layout_hides_side_panes(tmp_path):
     """Below the narrow threshold the split panes collapse instead of squeezing."""
-    app = ContextOSApp(kernel=build_kernel(tmp_path), session_path=None)
+    app = OpenContextApp(kernel=build_kernel(tmp_path), session_path=None)
     async with app.run_test(size=(80, 24)) as pilot:
         await pilot.pause()
         assert app.has_class("-narrow")
@@ -138,7 +138,7 @@ async def test_narrow_layout_hides_side_panes(tmp_path):
 @pytest.mark.asyncio
 async def test_wide_layout_shows_side_panes(tmp_path):
     """At full width both panes are shown."""
-    app = ContextOSApp(kernel=build_kernel(tmp_path), session_path=None)
+    app = OpenContextApp(kernel=build_kernel(tmp_path), session_path=None)
     async with app.run_test(size=(140, 44)) as pilot:
         await pilot.pause()
         assert not app.has_class("-narrow")
@@ -150,7 +150,7 @@ async def test_wide_layout_shows_side_panes(tmp_path):
 @pytest.mark.asyncio
 async def test_resize_updates_layout_class(tmp_path):
     """Resizing between wide and narrow re-applies the layout class both ways."""
-    app = ContextOSApp(kernel=build_kernel(tmp_path), session_path=None)
+    app = OpenContextApp(kernel=build_kernel(tmp_path), session_path=None)
     async with app.run_test(size=(140, 44)) as pilot:
         await pilot.pause()
         assert not app.has_class("-narrow")
@@ -168,7 +168,7 @@ async def test_resize_updates_layout_class(tmp_path):
 @pytest.mark.parametrize("width,height", TERMINAL_SIZES)
 async def test_every_tab_renders_at_every_size(tmp_path, width, height):
     """Switching through every tab must not raise at any supported size."""
-    app = ContextOSApp(kernel=build_kernel(tmp_path), session_path=None)
+    app = OpenContextApp(kernel=build_kernel(tmp_path), session_path=None)
     async with app.run_test(size=(width, height)) as pilot:
         await pilot.pause()
         for tab in (

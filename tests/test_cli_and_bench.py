@@ -1,7 +1,7 @@
 """
 Tests for the CLI and the benchmark.
 
-`cli.py` had no tests in 0.1.0, which is how `contextos top` came to launch the
+`cli.py` had no tests in 0.1.0, which is how `opencontext top` came to launch the
 wrong interface and `demo.py` came to import a function that did not exist.
 """
 
@@ -13,8 +13,8 @@ import sys
 
 import pytest
 
-from contextos import __version__, cli
-from contextos.benchmark import BenchmarkResult, run_benchmark
+from opencontext import __version__, cli
+from opencontext.benchmark import BenchmarkResult, run_benchmark
 
 
 # -- argument parsing ---------------------------------------------------------------
@@ -55,7 +55,7 @@ def test_no_command_defaults_to_the_tui(monkeypatch):
 
     monkeypatch.setattr(cli, "cmd_tui", fake_tui)
     assert cli.main([]) == 0
-    assert "args" in launched, "bare `contextos` should launch the interactive UI"
+    assert "args" in launched, "bare `opencontext` should launch the interactive UI"
 
 
 # -- commands ------------------------------------------------------------------------
@@ -91,7 +91,7 @@ def test_status_prints_a_summary(project, capsys):
 def test_top_once_renders_a_single_frame(project, capsys):
     assert cli.main(["top", "--once", "-d", str(project)]) == 0
     output = capsys.readouterr().out
-    assert "ContextOS" in output
+    assert "OpenContext" in output
     assert "context" in output
 
 
@@ -137,14 +137,14 @@ def test_doctor_reports_the_environment(project, capsys):
     output = capsys.readouterr().out
 
     assert exit_code in (0, 1)
-    assert "ContextOS" in output
+    assert "OpenContext" in output
     assert "Model server" in output
     assert "Token counting" in output
 
 
 def test_chat_reports_when_no_model_is_available(project, capsys, monkeypatch):
     """The CLI must not invent an answer when there is nothing to answer with."""
-    from contextos import llm
+    from opencontext import llm
 
     def unavailable(self, system_prompt, user_prompt, max_tokens=None):
         raise llm.LLMUnavailable("No model server reachable at http://localhost:11434/v1")
@@ -166,7 +166,7 @@ def test_bench_emits_json(capsys):
     report = json.loads(capsys.readouterr().out)
 
     assert report["results"]
-    assert report["environment"]["contextos_version"] == __version__
+    assert report["environment"]["opencontext_version"] == __version__
 
 
 def test_bench_emits_markdown(capsys):
@@ -224,7 +224,7 @@ def test_benchmark_markdown_matches_the_measured_results():
 
 
 def test_benchmark_fixtures_are_committed():
-    from contextos.benchmark import FIXTURE_DIR
+    from opencontext.benchmark import FIXTURE_DIR
 
     for name in ("python_traceback.txt", "node_stacktrace.txt"):
         assert os.path.exists(os.path.join(FIXTURE_DIR, name)), (
@@ -243,7 +243,7 @@ def stub_server(monkeypatch):
     def fake_run(kernel=None, host="127.0.0.1", port=9090, auto_open=False, upstream_url=None):
         captured.update(host=host, port=port, auto_open=auto_open, pages=len(kernel.pages))
 
-    monkeypatch.setattr("contextos.interfaces.proxy.run_proxy_server", fake_run)
+    monkeypatch.setattr("opencontext.interfaces.proxy.run_proxy_server", fake_run)
     return captured
 
 
@@ -263,17 +263,17 @@ def test_binding_publicly_without_a_key_warns(project, stub_server, capsys, monk
     The dashboard and page APIs expose the indexed tree. Binding off localhost with
     no key must say so — this is the one notice a silent regression could remove.
     """
-    monkeypatch.delenv("CONTEXTOS_API_KEY", raising=False)
+    monkeypatch.delenv("OPENCONTEXT_API_KEY", raising=False)
     cli.main(["serve", "-d", str(project), "--host", "0.0.0.0"])
 
     output = capsys.readouterr().out
     assert "Warning" in output
-    assert "CONTEXTOS_API_KEY" in output
+    assert "OPENCONTEXT_API_KEY" in output
     assert "indexed source tree" in output
 
 
 def test_binding_publicly_with_a_key_does_not_warn(project, stub_server, capsys, monkeypatch):
-    monkeypatch.setenv("CONTEXTOS_API_KEY", "secret")
+    monkeypatch.setenv("OPENCONTEXT_API_KEY", "secret")
     cli.main(["serve", "-d", str(project), "--host", "0.0.0.0"])
 
     output = capsys.readouterr().out
@@ -282,6 +282,6 @@ def test_binding_publicly_with_a_key_does_not_warn(project, stub_server, capsys,
 
 
 def test_binding_to_localhost_does_not_warn(project, stub_server, capsys, monkeypatch):
-    monkeypatch.delenv("CONTEXTOS_API_KEY", raising=False)
+    monkeypatch.delenv("OPENCONTEXT_API_KEY", raising=False)
     cli.main(["serve", "-d", str(project)])
     assert "Warning" not in capsys.readouterr().out

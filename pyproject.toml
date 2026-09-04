@@ -3,13 +3,13 @@ requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "contextos"
-version = "0.2.1"
+name = "opencontext"
+version = "0.3.0"
 description = "A virtual memory kernel for LLM context windows: token budgets, disk-backed swap and traceback compaction."
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }
-authors = [{ name = "ContextOS" }]
+authors = [{ name = "OpenContext" }]
 keywords = ["llm", "agents", "context", "context-window", "mcp", "tokens", "openai-proxy"]
 classifiers = [
     "Development Status :: 4 - Beta",
@@ -53,17 +53,17 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/your-org/contextos"
-Issues = "https://github.com/your-org/contextos/issues"
+Homepage = "https://github.com/your-org/opencontext"
+Issues = "https://github.com/your-org/opencontext/issues"
 
 [project.scripts]
-contextos = "contextos.cli:main"
+opencontext = "opencontext.cli:main"
 
 [tool.setuptools.packages.find]
-include = ["contextos*"]
+include = ["opencontext*"]
 
 [tool.setuptools.package-data]
-contextos = ["interfaces/static/*.html"]
+opencontext = ["interfaces/static/*.html"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

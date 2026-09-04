@@ -10,10 +10,10 @@ from __future__ import annotations
 import os
 from typing import Dict, List, Optional, Set
 
-from contextos.core.ids import file_page_id
-from contextos.core.tokens import estimate_tokens
-from contextos.core.kernel import ContextKernel
-from contextos.core.types import PageTier
+from opencontext.core.ids import file_page_id
+from opencontext.core.tokens import estimate_tokens
+from opencontext.core.kernel import ContextKernel
+from opencontext.core.types import PageTier
 
 # Files pinned to L0 only when they sit at the project root. Matching on bare
 # filename at any depth pinned every package.json in a monorepo into a tier that
@@ -29,7 +29,7 @@ class WorkspaceScanner:
     """Synchronises a directory tree into the kernel."""
 
     IGNORE_DIRS = {
-        ".git", ".hg", ".svn", ".contextos", "__pycache__", "node_modules", "venv",
+        ".git", ".hg", ".svn", ".opencontext", "__pycache__", "node_modules", "venv",
         ".venv", "env", ".pytest_cache", ".mypy_cache", ".ruff_cache", ".tox",
         ".idea", ".vscode", "dist", "build", "target", "out", ".next", ".nuxt",
         "coverage", "htmlcov", ".gradle", "vendor", "Pods", ".terraform",

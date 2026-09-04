@@ -14,11 +14,11 @@ import os
 import pytest
 from textual.widgets import DataTable, Input, Label, RichLog, TabbedContent, TextArea
 
-from contextos.core.kernel import ContextKernel
-from contextos.core.types import PageStatus, PageTier
-from contextos.interfaces.interactive_tui import CodeViewModal, ContextOSApp
-from contextos.llm import LLMUnavailable
-from contextos.storage.swap import SwapStorage
+from opencontext.core.kernel import ContextKernel
+from opencontext.core.types import PageStatus, PageTier
+from opencontext.interfaces.interactive_tui import CodeViewModal, OpenContextApp
+from opencontext.llm import LLMUnavailable
+from opencontext.storage.swap import SwapStorage
 
 TERMINAL = (140, 44)
 
@@ -38,7 +38,7 @@ def kernel(tmp_path):
 
 @pytest.mark.asyncio
 async def test_app_mounts_with_all_panels(kernel):
-    app = ContextOSApp(kernel=kernel, session_path=None)
+    app = OpenContextApp(kernel=kernel, session_path=None)
     async with app.run_test(size=TERMINAL) as pilot:
         await pilot.pause()
         for selector in ("#hud-ram-bar", "#page-table", "#chat-input", "#compactor-raw", "#arch-map"):
@@ -49,7 +49,7 @@ async def test_app_mounts_with_all_panels(kernel):
 
 @pytest.mark.asyncio
 async def test_number_keys_switch_tabs(kernel):
-    app = ContextOSApp(kernel=kernel, session_path=None)
+    app = OpenContextApp(kernel=kernel, session_path=None)
     async with app.run_test(size=TERMINAL) as pilot:
         await pilot.pause()
         tabs = app.query_one("#tabs", TabbedContent)
@@ -71,7 +71,7 @@ async def test_number_keys_switch_tabs(kernel):
 
 @pytest.mark.asyncio
 async def test_filtering_narrows_the_page_table(kernel):
-    app = ContextOSApp(kernel=kernel, session_path=None)
+    app = OpenContextApp(kernel=kernel, session_path=None)
     async with app.run_test(size=TERMINAL) as pilot:
         await pilot.pause()
         table = app.query_one("#page-table", DataTable)
@@ -94,7 +94,7 @@ async def test_swapped_pages_preview_their_tombstone(kernel):
     A swapped page has no content in memory — it was released to disk. The preview
     must show the tombstone rather than an empty pane.
     """
-    app = ContextOSApp(kernel=kernel, session_path=None)
+    app = OpenContextApp(kernel=kernel, session_path=None)
     async with app.run_test(size=TERMINAL) as pilot:
         await pilot.pause()
         kernel.page_out("file:auth.py")
@@ -108,7 +108,7 @@ async def test_swapped_pages_preview_their_tombstone(kernel):
 
 @pytest.mark.asyncio
 async def test_outline_mode_toggles_and_reports_itself(kernel):
-    app = ContextOSApp(kernel=kernel, session_path=None)
+    app = OpenContextApp(kernel=kernel, session_path=None)
     async with app.run_test(size=TERMINAL) as pilot:
         await pilot.pause()
         assert app.preview_mode == "FULL"
@@ -125,7 +125,7 @@ async def test_outline_mode_toggles_and_reports_itself(kernel):
 
 @pytest.mark.asyncio
 async def test_page_in_and_swap_out_actions(kernel):
-    app = ContextOSApp(kernel=kernel, session_path=None)
+    app = OpenContextApp(kernel=kernel, session_path=None)
     async with app.run_test(size=TERMINAL) as pilot:
         await pilot.pause()
         app.selected_page_id = "file:auth.py"
@@ -141,7 +141,7 @@ async def test_page_in_and_swap_out_actions(kernel):
 
 @pytest.mark.asyncio
 async def test_pinned_pages_cannot_be_swapped_from_the_ui(kernel):
-    app = ContextOSApp(kernel=kernel, session_path=None)
+    app = OpenContextApp(kernel=kernel, session_path=None)
     async with app.run_test(size=TERMINAL) as pilot:
         await pilot.pause()
         app.selected_page_id = "file:auth.py"
@@ -157,7 +157,7 @@ async def test_pinned_pages_cannot_be_swapped_from_the_ui(kernel):
 
 @pytest.mark.asyncio
 async def test_code_modal_opens_and_closes(kernel):
-    app = ContextOSApp(kernel=kernel, session_path=None)
+    app = OpenContextApp(kernel=kernel, session_path=None)
     async with app.run_test(size=TERMINAL) as pilot:
         await pilot.pause()
         app.push_screen(CodeViewModal(kernel, "file:main.py"))
@@ -174,7 +174,7 @@ async def test_code_modal_opens_and_closes(kernel):
 
 @pytest.mark.asyncio
 async def test_typing_a_traceback_compacts_it_live(kernel):
-    app = ContextOSApp(kernel=kernel, session_path=None)
+    app = OpenContextApp(kernel=kernel, session_path=None)
     async with app.run_test(size=TERMINAL) as pilot:
         await pilot.pause()
         app.action_switch_tab("tab-compactor")
@@ -200,7 +200,7 @@ async def test_typing_a_traceback_compacts_it_live(kernel):
 
 @pytest.mark.asyncio
 async def test_uncompactable_input_says_so_rather_than_claiming_a_saving(kernel):
-    app = ContextOSApp(kernel=kernel, session_path=None)
+    app = OpenContextApp(kernel=kernel, session_path=None)
     async with app.run_test(size=TERMINAL) as pilot:
         await pilot.pause()
         app.query_one("#compactor-raw", TextArea).text = "ValueError: x\nat y"
@@ -212,7 +212,7 @@ async def test_uncompactable_input_says_so_rather_than_claiming_a_saving(kernel)
 
 @pytest.mark.asyncio
 async def test_samples_load_real_captured_traces(kernel):
-    app = ContextOSApp(kernel=kernel, session_path=None)
+    app = OpenContextApp(kernel=kernel, session_path=None)
     async with app.run_test(size=TERMINAL) as pilot:
         await pilot.pause()
         raw = app.query_one("#compactor-raw", TextArea)
@@ -239,7 +239,7 @@ async def test_retry_loop_demo_shows_real_compactor_output(kernel):
     0.1.0 wrote a hand-authored summary into this pane, including a fabricated
     tombstone hash the compactor had never generated.
     """
-    app = ContextOSApp(kernel=kernel, session_path=None)
+    app = OpenContextApp(kernel=kernel, session_path=None)
     async with app.run_test(size=TERMINAL) as pilot:
         await pilot.pause()
         app.run_retry_loop_demo()
@@ -250,7 +250,7 @@ async def test_retry_loop_demo_shows_real_compactor_output(kernel):
 
         assert "attempt 1" in raw and "attempt 4" in raw
         # Real compactor output, not prose.
-        assert "[ContextOS]" in output
+        assert "[OpenContext]" in output
         assert "Root cause:" in output
         assert "psycopg2.OperationalError" in output
         assert "8f2a1b9c" not in output, "the fabricated hash must not return"
@@ -261,7 +261,7 @@ async def test_retry_loop_demo_shows_real_compactor_output(kernel):
 
 @pytest.mark.asyncio
 async def test_clearing_the_lab_empties_both_panes(kernel):
-    app = ContextOSApp(kernel=kernel, session_path=None)
+    app = OpenContextApp(kernel=kernel, session_path=None)
     async with app.run_test(size=TERMINAL) as pilot:
         await pilot.pause()
         app.load_sample("py")
@@ -280,7 +280,7 @@ async def test_clearing_the_lab_empties_both_panes(kernel):
 
 @pytest.mark.asyncio
 async def test_latency_is_blank_until_a_fault_is_measured(kernel):
-    app = ContextOSApp(kernel=kernel, session_path=None)
+    app = OpenContextApp(kernel=kernel, session_path=None)
     async with app.run_test(size=TERMINAL) as pilot:
         await pilot.pause()
         assert "none yet" in str(app.query_one("#hud-fault-latency", Label).render())
@@ -298,7 +298,7 @@ async def test_latency_is_blank_until_a_fault_is_measured(kernel):
 @pytest.mark.asyncio
 async def test_hud_contains_no_fabricated_figures(kernel):
     """The specific invented numbers from 0.1.0 must not reappear."""
-    app = ContextOSApp(kernel=kernel, session_path=None)
+    app = OpenContextApp(kernel=kernel, session_path=None)
     async with app.run_test(size=TERMINAL) as pilot:
         await pilot.pause()
         arch = str(app.query_one("#arch-map").render())
@@ -312,7 +312,7 @@ async def test_over_budget_state_is_surfaced(tmp_path):
     for index in range(6):
         kernel.allocate_page(f"rule:{index}", f"Rule {index}", "pinned\n" * 60, tier=PageTier.L0_PINNED)
 
-    app = ContextOSApp(kernel=kernel, session_path=None)
+    app = OpenContextApp(kernel=kernel, session_path=None)
     async with app.run_test(size=TERMINAL) as pilot:
         await pilot.pause()
         assert kernel.get_metrics().over_budget is True
@@ -324,7 +324,7 @@ async def test_over_budget_state_is_surfaced(tmp_path):
 
 @pytest.mark.asyncio
 async def test_slash_commands_operate_on_the_kernel(kernel):
-    app = ContextOSApp(kernel=kernel, session_path=None)
+    app = OpenContextApp(kernel=kernel, session_path=None)
     async with app.run_test(size=TERMINAL) as pilot:
         await pilot.pause()
         chat_input = app.query_one("#chat-input", Input)
@@ -340,7 +340,7 @@ async def test_slash_commands_operate_on_the_kernel(kernel):
 
 @pytest.mark.asyncio
 async def test_unknown_slash_command_is_reported(kernel):
-    app = ContextOSApp(kernel=kernel, session_path=None)
+    app = OpenContextApp(kernel=kernel, session_path=None)
     async with app.run_test(size=TERMINAL) as pilot:
         await pilot.pause()
         app.query_one("#chat-input", Input).value = "/nonsense"
@@ -358,14 +358,14 @@ async def test_chat_says_so_when_no_model_is_available(kernel, monkeypatch):
     A fabricated reply is worse than none, because the user cannot tell one from
     the other.
     """
-    from contextos import llm
+    from opencontext import llm
 
     def unavailable(self, system_prompt, user_prompt, max_tokens=None):
         raise LLMUnavailable("No model server reachable at http://localhost:11434/v1")
 
     monkeypatch.setattr(llm.LLMClient, "complete", unavailable)
 
-    app = ContextOSApp(kernel=kernel, session_path=None)
+    app = OpenContextApp(kernel=kernel, session_path=None)
     async with app.run_test(size=TERMINAL) as pilot:
         await pilot.pause()
         app._write_chat_error("No model server reachable at http://localhost:11434/v1")
@@ -378,7 +378,7 @@ async def test_rescan_reindexes_the_workspace(tmp_path):
     (tmp_path / "one.py").write_text("a = 1\n", encoding="utf-8")
     kernel = ContextKernel(token_budget=6000, swap_storage=SwapStorage(str(tmp_path / "swap.db")))
 
-    app = ContextOSApp(kernel=kernel, root_dir=str(tmp_path), session_path=None)
+    app = OpenContextApp(kernel=kernel, root_dir=str(tmp_path), session_path=None)
     async with app.run_test(size=TERMINAL) as pilot:
         await pilot.pause()
         (tmp_path / "two.py").write_text("b = 2\n", encoding="utf-8")
@@ -390,7 +390,7 @@ async def test_rescan_reindexes_the_workspace(tmp_path):
 
 @pytest.mark.asyncio
 async def test_clear_swap_purges_pages_with_no_other_copy(kernel):
-    app = ContextOSApp(kernel=kernel, session_path=None)
+    app = OpenContextApp(kernel=kernel, session_path=None)
     async with app.run_test(size=TERMINAL) as pilot:
         await pilot.pause()
         kernel.page_out("file:auth.py")
@@ -413,7 +413,7 @@ async def test_context_tab_breakdown_reconciles(kernel):
     This tab is the product's output, so a total that did not reconcile would be a
     fabricated figure in the one place it matters most.
     """
-    app = ContextOSApp(kernel=kernel, session_path=None)
+    app = OpenContextApp(kernel=kernel, session_path=None)
     async with app.run_test(size=TERMINAL) as pilot:
         await pilot.pause()
         app.action_switch_tab("tab-context")
@@ -433,13 +433,13 @@ async def test_context_pane_shows_the_window_verbatim(kernel):
     """
     The pane renders literal text, not markup.
 
-    Section headers look like "=== [ContextOS L1_WORKING] ===" and pages contain
+    Section headers look like "=== [OpenContext L1_WORKING] ===" and pages contain
     arbitrary source; letting Rich parse either would silently swallow anything in
     square brackets, including real code.
     """
     kernel.allocate_page("file:brackets.py", "brackets.py", "values = [1, 2, 3]\nkey = data['k']\n")
 
-    app = ContextOSApp(kernel=kernel, session_path=None)
+    app = OpenContextApp(kernel=kernel, session_path=None)
     async with app.run_test(size=TERMINAL) as pilot:
         await pilot.pause()
         app.action_switch_tab("tab-context")
@@ -449,13 +449,13 @@ async def test_context_pane_shows_the_window_verbatim(kernel):
         text = rendered.plain if hasattr(rendered, "plain") else str(rendered)
 
         assert text == kernel.assemble_context(), "the pane must show the window exactly"
-        assert "[ContextOS L1_WORKING]" in text
+        assert "[OpenContext L1_WORKING]" in text
         assert "values = [1, 2, 3]" in text
 
 
 @pytest.mark.asyncio
 async def test_exporting_the_context_writes_the_window_to_a_file(kernel, tmp_path):
-    app = ContextOSApp(kernel=kernel, root_dir=str(tmp_path), session_path=None)
+    app = OpenContextApp(kernel=kernel, root_dir=str(tmp_path), session_path=None)
     async with app.run_test(size=TERMINAL) as pilot:
         await pilot.pause()
         app.action_export_context()
@@ -470,7 +470,7 @@ async def test_exporting_the_context_writes_the_window_to_a_file(kernel, tmp_pat
 @pytest.mark.asyncio
 async def test_exporting_an_empty_window_is_refused(tmp_path):
     kernel = ContextKernel(token_budget=1000, swap_storage=SwapStorage(str(tmp_path / "s.db")))
-    app = ContextOSApp(kernel=kernel, root_dir=str(tmp_path), session_path=None)
+    app = OpenContextApp(kernel=kernel, root_dir=str(tmp_path), session_path=None)
     async with app.run_test(size=TERMINAL) as pilot:
         await pilot.pause()
         app.action_export_context()
@@ -489,7 +489,7 @@ async def test_content_search_finds_pages_the_name_filter_misses(kernel):
         "def charge(amount):\n    return gateway.submit(amount)\n",
     )
 
-    app = ContextOSApp(kernel=kernel, session_path=None)
+    app = OpenContextApp(kernel=kernel, session_path=None)
     async with app.run_test(size=TERMINAL) as pilot:
         await pilot.pause()
         table = app.query_one("#page-table", DataTable)
@@ -512,16 +512,16 @@ async def test_content_search_finds_pages_the_name_filter_misses(kernel):
 @pytest.mark.asyncio
 async def test_chat_turns_become_episodic_pages(kernel, monkeypatch):
     """
-    The UI's own conversation has to live in the tier ContextOS claims to manage,
+    The UI's own conversation has to live in the tier OpenContext claims to manage,
     so turns age out under the same budget as everything else.
     """
-    from contextos import llm
+    from opencontext import llm
 
     monkeypatch.setattr(
         llm.LLMClient, "stream", lambda self, system_prompt, user_prompt: iter(())
     )
 
-    app = ContextOSApp(kernel=kernel, session_path=None)
+    app = OpenContextApp(kernel=kernel, session_path=None)
     async with app.run_test(size=TERMINAL) as pilot:
         await pilot.pause()
         before = kernel.get_metrics().l2_pages
@@ -537,7 +537,7 @@ async def test_chat_turns_become_episodic_pages(kernel, monkeypatch):
 @pytest.mark.asyncio
 async def test_assistant_turn_is_ingested_only_once_it_exists(kernel):
     """Ingesting before the reply arrived would create an empty page and charge for it."""
-    app = ContextOSApp(kernel=kernel, session_path=None)
+    app = OpenContextApp(kernel=kernel, session_path=None)
     async with app.run_test(size=TERMINAL) as pilot:
         await pilot.pause()
         before = kernel.get_metrics().l2_pages
@@ -551,7 +551,7 @@ async def test_assistant_turn_is_ingested_only_once_it_exists(kernel):
 
 @pytest.mark.asyncio
 async def test_streaming_pane_shows_partial_replies_then_clears(kernel):
-    app = ContextOSApp(kernel=kernel, session_path=None)
+    app = OpenContextApp(kernel=kernel, session_path=None)
     async with app.run_test(size=TERMINAL) as pilot:
         await pilot.pause()
 
@@ -569,7 +569,7 @@ async def test_streaming_pane_shows_partial_replies_then_clears(kernel):
 
 @pytest.mark.asyncio
 async def test_help_screen_opens_and_closes(kernel):
-    app = ContextOSApp(kernel=kernel, session_path=None)
+    app = OpenContextApp(kernel=kernel, session_path=None)
     async with app.run_test(size=TERMINAL) as pilot:
         await pilot.pause()
         app.action_help()
@@ -591,7 +591,7 @@ async def test_session_survives_a_quit(tmp_path):
     for index in range(4):
         first.allocate_page(f"file:{index}.py", f"src/{index}.py", "def handler():\n    pass\n" * 40)
 
-    app = ContextOSApp(kernel=first, root_dir=str(tmp_path), session_path=session)
+    app = OpenContextApp(kernel=first, root_dir=str(tmp_path), session_path=session)
     async with app.run_test(size=TERMINAL) as pilot:
         await pilot.pause()
         first.pin_page("file:2.py")
@@ -600,7 +600,7 @@ async def test_session_survives_a_quit(tmp_path):
         await pilot.pause()
 
     second = ContextKernel(token_budget=16000, swap_storage=SwapStorage(swap))
-    restored = ContextOSApp(kernel=second, root_dir=str(tmp_path), session_path=session)
+    restored = OpenContextApp(kernel=second, root_dir=str(tmp_path), session_path=session)
     async with restored.run_test(size=TERMINAL) as pilot:
         await pilot.pause()
 
@@ -612,7 +612,7 @@ async def test_session_survives_a_quit(tmp_path):
 
 @pytest.mark.asyncio
 async def test_session_persistence_can_be_disabled(kernel, tmp_path):
-    app = ContextOSApp(kernel=kernel, root_dir=str(tmp_path), session_path=None)
+    app = OpenContextApp(kernel=kernel, root_dir=str(tmp_path), session_path=None)
     async with app.run_test(size=TERMINAL) as pilot:
         await pilot.pause()
         app.action_save_session()

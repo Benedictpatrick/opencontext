@@ -2,8 +2,8 @@
 The published figures must come from the benchmark, and the benchmark must not
 read the working tree.
 
-Both of these were broken once. `bench` outlined `contextos/core/kernel.py` and
-walked the installed package for its session workload, so editing ContextOS moved
+Both of these were broken once. `bench` outlined `opencontext/core/kernel.py` and
+walked the installed package for its session workload, so editing OpenContext moved
 the numbers printed in the README — and they drifted apart silently, because
 nothing compared them.
 """
@@ -11,7 +11,7 @@ nothing compared them.
 import os
 import re
 
-from contextos import benchmark
+from opencontext import benchmark
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -43,7 +43,7 @@ def test_the_session_workload_actually_exceeds_the_budget():
     A session that fits in the budget measures nothing: no eviction runs, and the
     reduction figure would describe compaction alone. The corpus has to be
     comfortably larger than the budget it is held to, which is the situation
-    ContextOS exists for.
+    OpenContext exists for.
     """
     session = next(
         r for r in benchmark.run_benchmark().results if r.name.startswith("Mixed agent session")

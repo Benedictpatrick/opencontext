@@ -13,8 +13,8 @@ import threading
 
 import pytest
 
-from contextos.core.types import ContextPage, PageStatus, PageTier
-from contextos.storage.swap import SwapStorage, SwapStorageError
+from opencontext.core.types import ContextPage, PageStatus, PageTier
+from opencontext.storage.swap import SwapStorage, SwapStorageError
 
 
 @pytest.fixture

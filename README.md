@@ -1,4 +1,4 @@
-# ContextOS
+# OpenContext
 
 **A virtual memory kernel for LLM context windows.**
 
@@ -14,21 +14,21 @@ Keeps the active working set inside a token budget, moves cold pages to local di
 
 A coding agent's context window fills with material it is no longer using: files it opened twenty steps ago, the same stack trace retried four times, conversation turns that are no longer relevant. Quality degrades and cost rises, because everything in the window is re-sent on every call.
 
-## What ContextOS does
+## What OpenContext does
 
 Four mechanisms, each measurable:
 
 1. **Token budget with LRU eviction.** You set a budget. When the working set exceeds it, the coldest pages are written to a local SQLite file and replaced in-context by a one-line tombstone. Episodic history is given up before working code; pinned instructions are never evicted.
-2. **Page faults.** When an incoming prompt names a page that has been swapped out, ContextOS restores it before the request goes to the model. Median 0.21 ms.
+2. **Page faults.** When an incoming prompt names a page that has been swapped out, OpenContext restores it before the request goes to the model. Median 0.22 ms.
 3. **Traceback compaction.** Stack traces are reduced to their user frames and root cause. Python, Node.js, Rust, Go and test-runner output are recognised. Framework noise is dropped; the diagnostic content is kept.
-4. **Repeat-failure detection.** When the same root cause arrives three times — normalised so timestamps, addresses and retry counters do not defeat the match — ContextOS raises a warning.
+4. **Repeat-failure detection.** When the same root cause arrives three times — normalised so timestamps, addresses and retry counters do not defeat the match — OpenContext raises a warning.
 
 ```
                     your editor / agent
                             │
                             ▼
     ┌───────────────────────────────────────────────┐
-    │                  ContextOS                    │
+    │                  OpenContext                  │
     │                                               │
     │   L0  pinned instructions   never evicted     │
     │   L1  working files         evicted 2nd       │
@@ -36,7 +36,7 @@ Four mechanisms, each measurable:
     │                    │                          │
     │                    │  swap out ↓  ↑ page in   │
     │            SQLite  ▼                          │
-    │            .contextos/swap.db                 │
+    │            .opencontext/swap.db               │
     └───────────────────────────────────────────────┘
                             │
                             ▼
@@ -55,16 +55,16 @@ The kernel itself depends only on `pydantic`, `rich` and `httpx`. Interfaces are
 
 | Extra | Adds | For |
 | :--- | :--- | :--- |
-| *(base)* | — | library use, `contextos mcp`, `scan`, `status`, `compact`, `bench` |
-| `[tui]` | textual | `contextos tui` |
-| `[server]` | fastapi, uvicorn | `contextos serve` |
+| *(base)* | — | library use, `opencontext mcp`, `scan`, `status`, `compact`, `bench` |
+| `[tui]` | textual | `opencontext tui` |
+| `[server]` | fastapi, uvicorn | `opencontext serve` |
 | `[exact-tokens]` | tiktoken | exact token counting |
 | `[all]` | all of the above | everything |
 
 Check the installation at any time:
 
 ```bash
-contextos doctor
+opencontext doctor
 ```
 
 ---
@@ -72,15 +72,15 @@ contextos doctor
 ## Quick start
 
 ```bash
-contextos scan .        # index the project
-contextos status        # what is in context, what is on disk
-contextos top           # live monitor
-contextos tui           # interactive UI
+opencontext scan .        # index the project
+opencontext status        # what is in context, what is on disk
+opencontext top           # live monitor
+opencontext tui           # interactive UI
 ```
 
 ### The interactive UI
 
-`contextos tui` is where the work happens. Six tabs:
+`opencontext tui` is where the work happens. Six tabs:
 
 | Tab | What it is for |
 | :--- | :--- |
@@ -96,9 +96,9 @@ Press `?` for the key list.
 **Your arrangement survives closing the app.** Pins, tiers and the budget are saved
 on exit and restored on start, so curating a working set is worth doing. A page
 whose file has since been deleted is dropped and reported rather than restored
-empty. Start with `contextos tui --fresh` to ignore a saved session.
+empty. Start with `opencontext tui --fresh` to ignore a saved session.
 
-**The Context tab is the point.** ContextOS exists to produce one string — the
+**The Context tab is the point.** OpenContext exists to produce one string — the
 window your agent will be charged for — and that tab shows it exactly, alongside a
 breakdown of what every page contributes. A swapped page appears as its ~24-token
 tombstone next to the thousands it stands in for. The rows reconcile to the
@@ -109,19 +109,19 @@ can be trusted rather than merely displayed.
 
 ## Measured results
 
-Every figure below is produced by `contextos bench`, which runs over fixtures committed in `tests/fixtures/`. The inputs are frozen snapshots, not the working tree, so the reduction figures are the same on any checkout and a test asserts this table matches what the command prints. Run it yourself:
+Every figure below is produced by `opencontext bench`, which runs over fixtures committed in `tests/fixtures/`. The inputs are frozen snapshots, not the working tree, so the reduction figures are the same on any checkout and a test asserts this table matches what the command prints. Run it yourself:
 
 ```bash
-contextos bench
+opencontext bench
 ```
 
 | Workload | Before | After | Reduction |
 | :--- | ---: | ---: | ---: |
-| Python traceback (FastAPI, 24 frames) | 846 tok | 138 tok | **83.7%** |
+| Python traceback (FastAPI, 24 frames) | 846 tok | 139 tok | **83.6%** |
 | Node.js stack trace (Next.js, 17 frames) | 376 tok | 93 tok | **75.3%** |
-| Source file folded to outline (656 lines) | 5,784 tok | 1,049 tok | **81.9%** |
-| Inactive file swapped to disk (tombstone in context) | 5,784 tok | 27 tok | **99.5%** |
-| Mixed agent session (files, retries, turns, rules) | 48,578 tok | 12,262 tok | **74.8%** |
+| Source file folded to outline (755 lines) | 6,842 tok | 1,133 tok | **83.4%** |
+| Inactive file swapped to disk (tombstone in context) | 6,842 tok | 28 tok | **99.6%** |
+| Mixed agent session (files, retries, turns, rules) | 48,657 tok | 12,284 tok | **74.8%** |
 
 **Latency**, over 50 pages and 25 sampled faults:
 
@@ -133,7 +133,7 @@ contextos bench
 
 Measured on Python 3.11 / Windows with the built-in token heuristic. Unlike the reduction figures, these are wall-clock and will differ with your hardware and disk; the command reports whatever it measures on your machine. The mean is omitted because it is dominated by the first fault, which pays for opening the database.
 
-**What is not claimed.** ContextOS does not publish an end-to-end saving against a specific model's bill. That depends on the model, the prompt and the provider's caching policy, none of which this project controls. The figures above are token counts before and after, on stated inputs.
+**What is not claimed.** OpenContext does not publish an end-to-end saving against a specific model's bill. That depends on the model, the prompt and the provider's caching policy, none of which this project controls. The figures above are token counts before and after, on stated inputs.
 
 ---
 
@@ -142,7 +142,7 @@ Measured on Python 3.11 / Windows with the built-in token heuristic. Unlike the 
 ### As a library
 
 ```python
-from contextos import ContextKernel, ContextPager
+from opencontext import ContextKernel, ContextPager
 
 kernel = ContextKernel(token_budget=16_000)
 pager = ContextPager(kernel)
@@ -162,7 +162,7 @@ result["context_tokens"]  # what it costs
 For Cursor, Continue.dev, LibreChat, or anything speaking the chat completions API.
 
 ```bash
-contextos serve --port 9090
+opencontext serve --port 9090
 ```
 
 Point the client at `http://localhost:9090/v1`. Requests are routed through the kernel and forwarded upstream.
@@ -170,14 +170,14 @@ Point the client at `http://localhost:9090/v1`. Requests are routed through the 
 * **Streaming works.** `stream: true` is proxied as server-sent events.
 * **Client fields are preserved.** `tools`, `tool_choice`, `response_format` and anything else pass through untouched.
 * **Conversation history is preserved.** The assembled context is prepended as a system message; your turns are not replaced.
-* **Failures are reported, never faked.** If the upstream is unreachable you get a 502 explaining why. ContextOS will not synthesise a completion, because you could not tell it from a real one.
+* **Failures are reported, never faked.** If the upstream is unreachable you get a 502 explaining why. OpenContext will not synthesise a completion, because you could not tell it from a real one.
 
 Configure the upstream by environment:
 
 ```bash
-CONTEXTOS_UPSTREAM=http://localhost:11434/v1   # default: local Ollama
-CONTEXTOS_UPSTREAM_API_KEY=sk-...              # if the endpoint needs one
-CONTEXTOS_MODEL=qwen2.5-coder:7b
+OPENCONTEXT_UPSTREAM=http://localhost:11434/v1   # default: local Ollama
+OPENCONTEXT_UPSTREAM_API_KEY=sk-...              # if the endpoint needs one
+OPENCONTEXT_MODEL=qwen2.5-coder:7b
 ```
 
 Anything OpenAI-compatible works, including local runtimes (Ollama, llama.cpp, LM Studio, vLLM) and hosted providers.
@@ -189,8 +189,8 @@ For Claude Code, Cursor Agent and Antigravity.
 ```json
 {
   "mcpServers": {
-    "contextos": {
-      "command": "contextos",
+    "opencontext": {
+      "command": "opencontext",
       "args": ["mcp"]
     }
   }
@@ -210,7 +210,7 @@ For Claude Code, Cursor Agent and Antigravity.
 
 ### Web dashboard
 
-`contextos serve` also serves a dashboard at `http://localhost:9090/`: live budget usage, the page table with page-in/swap-out controls, a compaction workbench, and chat against the indexed workspace.
+`opencontext serve` also serves a dashboard at `http://localhost:9090/`: live budget usage, the page table with page-in/swap-out controls, a compaction workbench, and chat against the indexed workspace.
 
 ---
 
@@ -218,16 +218,16 @@ For Claude Code, Cursor Agent and Antigravity.
 
 | Command | Does |
 | :--- | :--- |
-| `contextos` | Interactive terminal UI (`--fresh` ignores a saved session) |
-| `contextos top` | Live read-only monitor (`--once` for a single frame) |
-| `contextos status` | One-shot summary |
-| `contextos scan [dir]` | Index a project (`--prune-swap` to clear stale swap rows) |
-| `contextos chat "..."` | Ask about the codebase, with context assembled by the kernel |
-| `contextos compact -f trace.txt` | Compact a trace (also reads stdin) |
-| `contextos serve` | Dashboard and proxy |
-| `contextos mcp` | MCP stdio server |
-| `contextos bench` | Run the benchmark (`--json`, `--markdown`) |
-| `contextos doctor` | Check installation and configuration |
+| `opencontext` | Interactive terminal UI (`--fresh` ignores a saved session) |
+| `opencontext top` | Live read-only monitor (`--once` for a single frame) |
+| `opencontext status` | One-shot summary |
+| `opencontext scan [dir]` | Index a project (`--prune-swap` to clear stale swap rows) |
+| `opencontext chat "..."` | Ask about the codebase, with context assembled by the kernel |
+| `opencontext compact -f trace.txt` | Compact a trace (also reads stdin) |
+| `opencontext serve` | Dashboard and proxy |
+| `opencontext mcp` | MCP stdio server |
+| `opencontext bench` | Run the benchmark (`--json`, `--markdown`) |
+| `opencontext doctor` | Check installation and configuration |
 
 ---
 
@@ -236,8 +236,8 @@ For Claude Code, Cursor Agent and Antigravity.
 The dashboard and page APIs expose information about the indexed source tree.
 
 * The default bind is `127.0.0.1`. Binding elsewhere without a key prints a warning.
-* **File contents are withheld by default.** `/api/pages` returns metadata and a short preview. Set `CONTEXTOS_EXPOSE_CONTENT=1` to serve full contents.
-* Set `CONTEXTOS_API_KEY` to require `Authorization: Bearer <key>` or `X-API-Key`. `/health` stays open for probes.
+* **File contents are withheld by default.** `/api/pages` returns metadata and a short preview. Set `OPENCONTEXT_EXPOSE_CONTENT=1` to serve full contents.
+* Set `OPENCONTEXT_API_KEY` to require `Authorization: Bearer <key>` or `X-API-Key`. `/health` stays open for probes.
 * A server-configured upstream key takes precedence over one presented by a client, so the operator controls which credential leaves the machine.
 * Nothing is sent anywhere unless you configure an upstream. With a local model, no content leaves the machine.
 
@@ -250,15 +250,15 @@ The default estimator is a deterministic heuristic, so budgets are reproducible 
 | Estimator | Mean error | Worst case |
 | :--- | ---: | ---: |
 | characters / 4 | 10.8% | 32.2% |
-| ContextOS heuristic | 7.1% | 21.1% |
+| OpenContext heuristic | 7.1% | 21.1% |
 
 `tests/test_tokens.py` re-runs that measurement and fails if the estimator drifts outside the documented tolerance.
 
 For exact counts:
 
 ```bash
-pip install "contextos[exact-tokens]"
-export CONTEXTOS_TOKENIZER=tiktoken
+pip install "opencontext[exact-tokens]"
+export OPENCONTEXT_TOKENIZER=tiktoken
 ```
 
 ---
@@ -280,14 +280,14 @@ The layout tests render the terminal UI at 80×24, 100×30, 120×40 and 160×50 
 
 Stated plainly, because a tool that reports its own limits is easier to trust than one that does not.
 
-* **No daemon.** Each command builds its own kernel and re-indexes. The interactive UI persists its arrangement — pins, tiers and budget — to `.contextos/session.json` and restores it on start, but there is no background process: two ContextOS commands running at once do not share live state.
+* **No daemon.** Each command builds its own kernel and re-indexes. The interactive UI persists its arrangement — pins, tiers and budget — to `.opencontext/session.json` and restores it on start, but there is no background process: two OpenContext commands running at once do not share live state.
 * **Token counts are estimates by default.** See the accuracy table above, or opt into exact counting.
 * **Search is lexical, not semantic.** `context_search`, the Pages tab's content search and the chat ranking all score by keyword overlap. There are no embeddings.
 * **Page-fault detection is name-based.** A prompt must mention a page's id, title or base name for it to be restored automatically. Names shorter than four characters are ignored, because they match almost any sentence.
 * **Outline folding is exact for Python only.** Python is parsed with `ast`. Other languages use an indentation scanner, which is approximate.
 * **`PageTier.L3_SWAP`, `PageStatus.COMPACTED` and `PageStatus.EVICTED` are reserved.** Swapping changes a page's `status`, not its `tier`, so it returns to the tier it came from; compaction is recorded on `ContextPage.compacted`. The enum members are retained for API compatibility.
 * **Long conversations are kept as a digest, not turn by turn.** Once old turns exceed a share of the budget they are coalesced into one page, which then swaps to disk like any other. Nothing is lost — referencing it pages the whole history back — but individual turns stop being separately addressable at that point. This is what stops a long chat from evicting the code you are working on.
-* **The swap database can outlive a run.** Rows from an earlier session remain until pruned. Live and on-disk figures are reported separately, and `contextos scan --prune-swap` clears them.
+* **The swap database can outlive a run.** Rows from an earlier session remain until pruned. Live and on-disk figures are reported separately, and `opencontext scan --prune-swap` clears them.
 
 ---
 

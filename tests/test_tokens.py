@@ -14,8 +14,8 @@ import statistics
 
 import pytest
 
-from contextos.core import tokens as tokens_module
-from contextos.core.tokens import estimate_tokens, heuristic_tokens, reset_tokenizer_cache
+from opencontext.core import tokens as tokens_module
+from opencontext.core.tokens import estimate_tokens, heuristic_tokens, reset_tokenizer_cache
 
 # The tolerance documented in core/tokens.py.
 DOCUMENTED_MEAN_ERROR_PCT = 7.1
@@ -58,7 +58,7 @@ def _reset_tokenizer():
 
 
 def test_exact_tokenizer_is_opt_in(monkeypatch):
-    monkeypatch.delenv("CONTEXTOS_TOKENIZER", raising=False)
+    monkeypatch.delenv("OPENCONTEXT_TOKENIZER", raising=False)
     reset_tokenizer_cache()
     assert tokens_module._get_encoder() is None
     text = "def handler(): pass\n" * 10
@@ -67,7 +67,7 @@ def test_exact_tokenizer_is_opt_in(monkeypatch):
 
 def test_opting_in_uses_the_exact_tokenizer(monkeypatch):
     pytest.importorskip("tiktoken")
-    monkeypatch.setenv("CONTEXTOS_TOKENIZER", "tiktoken")
+    monkeypatch.setenv("OPENCONTEXT_TOKENIZER", "tiktoken")
     reset_tokenizer_cache()
 
     assert tokens_module._get_encoder() is not None
@@ -78,7 +78,7 @@ def test_opting_in_uses_the_exact_tokenizer(monkeypatch):
 
 
 def test_a_broken_tokenizer_falls_back_rather_than_crashing(monkeypatch):
-    monkeypatch.setenv("CONTEXTOS_TOKENIZER", "tiktoken")
+    monkeypatch.setenv("OPENCONTEXT_TOKENIZER", "tiktoken")
     reset_tokenizer_cache()
 
     class Broken:
@@ -104,7 +104,7 @@ def test_heuristic_accuracy_stays_within_the_documented_tolerance():
     encoder = tiktoken.get_encoding("cl100k_base")
 
     root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    paths = glob.glob(os.path.join(root, "contextos", "**", "*.py"), recursive=True)
+    paths = glob.glob(os.path.join(root, "opencontext", "**", "*.py"), recursive=True)
     paths.append(os.path.join(root, "README.md"))
     paths = [path for path in paths if os.path.exists(path)]
     assert len(paths) >= 8, "expected a meaningful sample of files to measure against"
@@ -137,7 +137,7 @@ def test_the_heuristic_beats_naive_character_division():
     encoder = tiktoken.get_encoding("cl100k_base")
 
     root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    paths = glob.glob(os.path.join(root, "contextos", "**", "*.py"), recursive=True)
+    paths = glob.glob(os.path.join(root, "opencontext", "**", "*.py"), recursive=True)
 
     naive_errors, tuned_errors = [], []
     for path in paths:

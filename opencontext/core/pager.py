@@ -11,10 +11,10 @@ from __future__ import annotations
 import os
 from typing import Any, Dict, List, Optional
 
-from contextos.core.compactor import CodeOutlineCompactor
-from contextos.core.ids import error_page_id, file_page_id, rule_page_id, turn_page_id
-from contextos.core.kernel import ContextKernel
-from contextos.core.types import ContextPage, PageTier
+from opencontext.core.compactor import CodeOutlineCompactor
+from opencontext.core.ids import error_page_id, file_page_id, rule_page_id, turn_page_id
+from opencontext.core.kernel import ContextKernel
+from opencontext.core.types import ContextPage, PageTier
 
 # Files longer than this are folded to an outline when a focus symbol is given.
 OUTLINE_THRESHOLD_LINES = 150
