@@ -293,4 +293,4 @@ Stated plainly, because a tool that reports its own limits is easier to trust th
 
 ## License
 
-MIT.
+MIT — see [LICENSE](LICENSE). Copyright (c) 2026 Benedict Patrick.

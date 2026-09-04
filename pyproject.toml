@@ -9,7 +9,7 @@ description = "A virtual memory kernel for LLM context windows: token budgets, d
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }
-authors = [{ name = "OpenContext" }]
+authors = [{ name = "Benedict Patrick" }]
 keywords = ["llm", "agents", "context", "context-window", "mcp", "tokens", "openai-proxy"]
 classifiers = [
     "Development Status :: 4 - Beta",
@@ -53,8 +53,8 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/your-org/opencontext"
-Issues = "https://github.com/your-org/opencontext/issues"
+Homepage = "https://github.com/Benedictpatrick/opencontext"
+Issues = "https://github.com/Benedictpatrick/opencontext/issues"
 
 [project.scripts]
 opencontext = "opencontext.cli:main"
