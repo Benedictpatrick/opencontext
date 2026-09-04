@@ -1,0 +1,19 @@
+TypeError: Cannot read properties of undefined (reading 'organizationId')
+    at resolveTenant (/srv/web/src/server/tenancy.ts:87:34)
+    at /srv/web/node_modules/next/dist/server/lib/router-server.js:264:33
+    at processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async invokeRequestHandler (/srv/web/node_modules/next/dist/server/lib/router-server.js:171:9)
+    at async requestHandlerImpl (/srv/web/node_modules/next/dist/server/lib/router-server.js:512:17)
+    at async Server.requestListener (/srv/web/node_modules/next/dist/server/lib/start-server.js:158:13)
+    at async Object.handler (/srv/web/node_modules/next/dist/server/next-server.js:842:29)
+    at async DevServer.runApi (/srv/web/node_modules/next/dist/server/dev/next-dev-server.js:462:20)
+    at async DevServer.handleApiRequest (/srv/web/node_modules/next/dist/server/next-server.js:1002:20)
+    at async DevServer.handleRequestImpl (/srv/web/node_modules/next/dist/server/base-server.js:1234:9)
+    at async /srv/web/node_modules/next/dist/server/base-server.js:589:22
+    at async NextNodeServer.pipeImpl (/srv/web/node_modules/next/dist/server/base-server.js:1017:25)
+    at async loadCheckout (/srv/web/src/app/checkout/page.tsx:34:18)
+    at async Module.getServerSideProps (/srv/web/src/pages/checkout.tsx:112:22)
+    at async node:internal/modules/esm/module_job:194:25
+    at async Promise.all (index 0)
+    at async ModuleJob.run (node:internal/modules/esm/module_job:222:5)
+    at async ModuleLoader.import (node:internal/modules/esm/loader:316:24)

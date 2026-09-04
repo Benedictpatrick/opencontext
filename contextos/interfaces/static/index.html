@@ -1,0 +1,939 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ContextOS | Virtual Context Memory Kernel</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #090d16;
+      --bg-card: rgba(16, 23, 38, 0.7);
+      --bg-card-hover: rgba(22, 32, 54, 0.85);
+      --border: rgba(56, 75, 112, 0.3);
+      --border-focus: #00d2ff;
+      --primary: #00d2ff;
+      --primary-glow: rgba(0, 210, 255, 0.25);
+      --accent: #3a7bd5;
+      --green: #10b981;
+      --green-glow: rgba(16, 185, 129, 0.2);
+      --yellow: #f59e0b;
+      --red: #ef4444;
+      --purple: #a855f7;
+      --text: #f1f5f9;
+      --text-muted: #94a3b8;
+      --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      background-image: 
+        radial-gradient(circle at 15% 15%, rgba(0, 210, 255, 0.08) 0%, transparent 40%),
+        radial-gradient(circle at 85% 85%, rgba(168, 85, 247, 0.06) 0%, transparent 40%);
+      color: var(--text);
+      font-family: var(--font-sans);
+      min-height: 100vh;
+      overflow-x: hidden;
+      padding-bottom: 60px;
+    }
+
+    /* Top Navigation Bar */
+    header {
+      background: rgba(9, 13, 22, 0.85);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      padding: 14px 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .brand-logo {
+      width: 34px;
+      height: 34px;
+      background: linear-gradient(135deg, #00d2ff, #3a7bd5);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 18px;
+      color: #000;
+      box-shadow: 0 0 16px var(--primary-glow);
+    }
+    .brand-title {
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .brand-badge {
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 12px;
+      background: rgba(0, 210, 255, 0.15);
+      color: var(--primary);
+      border: 1px solid rgba(0, 210, 255, 0.3);
+      font-weight: 600;
+    }
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .status-pill {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(16, 185, 129, 0.1);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      color: var(--green);
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 600;
+    }
+    .pulse-dot {
+      width: 8px;
+      height: 8px;
+      background: var(--green);
+      border-radius: 50%;
+      box-shadow: 0 0 8px var(--green);
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.85); }
+    }
+
+    .btn {
+      background: linear-gradient(135deg, #00d2ff, #3a7bd5);
+      color: #000;
+      font-weight: 600;
+      font-size: 13px;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .btn:hover {
+      box-shadow: 0 0 16px var(--primary-glow);
+      transform: translateY(-1px);
+    }
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.15);
+      box-shadow: none;
+    }
+
+    /* Main Container */
+    main {
+      max-width: 1380px;
+      margin: 28px auto;
+      padding: 0 24px;
+    }
+
+    /* Telemetry Grid */
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr 1fr;
+      gap: 18px;
+      margin-bottom: 28px;
+    }
+    .metric-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 20px;
+      backdrop-filter: blur(12px);
+      position: relative;
+      overflow: hidden;
+      transition: transform 0.2s, border-color 0.2s;
+    }
+    .metric-card:hover {
+      border-color: rgba(0, 210, 255, 0.4);
+      transform: translateY(-2px);
+    }
+    .metric-label {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .metric-value {
+      font-size: 26px;
+      font-weight: 700;
+      color: #fff;
+      font-family: var(--font-mono);
+    }
+    .metric-sub {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    /* RAM Progress Bar */
+    .ram-bar-container {
+      width: 100%;
+      height: 10px;
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 6px;
+      margin: 12px 0 6px 0;
+      overflow: hidden;
+    }
+    .ram-bar-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #10b981, #00d2ff);
+      border-radius: 6px;
+      transition: width 0.6s ease, background 0.4s;
+    }
+
+    /* Tabs Navigation */
+    .nav-tabs {
+      display: flex;
+      gap: 10px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 12px;
+      margin-bottom: 22px;
+    }
+    .nav-tab {
+      padding: 8px 18px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-muted);
+      cursor: pointer;
+      background: transparent;
+      border: 1px solid transparent;
+      transition: all 0.2s;
+    }
+    .nav-tab:hover {
+      color: #fff;
+      background: rgba(255, 255, 255, 0.04);
+    }
+    .nav-tab.active {
+      color: #fff;
+      background: rgba(0, 210, 255, 0.12);
+      border-color: rgba(0, 210, 255, 0.35);
+    }
+
+    /* Section Panels */
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    /* Page Explorer Table */
+    .panel-box {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden;
+      backdrop-filter: blur(12px);
+    }
+    .panel-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+    .search-input {
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid var(--border);
+      color: #fff;
+      padding: 8px 14px;
+      border-radius: 8px;
+      font-size: 13px;
+      width: 280px;
+      font-family: var(--font-sans);
+    }
+    .search-input:focus {
+      outline: none;
+      border-color: var(--primary);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    th {
+      text-align: left;
+      padding: 12px 18px;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-muted);
+      border-bottom: 1px solid var(--border);
+      background: rgba(0, 0, 0, 0.2);
+    }
+    td {
+      padding: 14px 18px;
+      border-bottom: 1px solid rgba(56, 75, 112, 0.15);
+      vertical-align: middle;
+    }
+    tr:hover td {
+      background: var(--bg-card-hover);
+    }
+    .badge-tier {
+      font-size: 10px;
+      padding: 2px 7px;
+      border-radius: 6px;
+      font-weight: 600;
+      font-family: var(--font-mono);
+      display: inline-block;
+    }
+    .tier-l0 { background: rgba(0, 210, 255, 0.15); color: #00d2ff; }
+    .tier-l1 { background: rgba(16, 185, 129, 0.15); color: #10b981; }
+    .tier-l2 { background: rgba(245, 158, 11, 0.15); color: #f59e0b; }
+    .tier-l3 { background: rgba(168, 85, 247, 0.15); color: #a855f7; }
+
+    .badge-status {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 12px;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .status-active { background: rgba(16, 185, 129, 0.12); color: #10b981; }
+    .status-swapped { background: rgba(245, 158, 11, 0.12); color: #f59e0b; }
+
+    .action-btn-group {
+      display: flex;
+      gap: 8px;
+    }
+    .mini-btn {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text);
+      transition: all 0.15s;
+    }
+    .mini-btn:hover {
+      background: rgba(0, 210, 255, 0.15);
+      border-color: var(--primary);
+      color: #fff;
+    }
+
+    /* Chat / Test Console */
+    .chat-layout {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 20px;
+    }
+    .chat-box {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      height: 520px;
+    }
+    .chat-messages {
+      flex: 1;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      padding-right: 8px;
+    }
+    .chat-bubble {
+      padding: 12px 16px;
+      border-radius: 12px;
+      font-size: 14px;
+      line-height: 1.5;
+      max-width: 85%;
+    }
+    .chat-bubble.user {
+      align-self: flex-end;
+      background: linear-gradient(135deg, #00d2ff, #3a7bd5);
+      color: #000;
+      font-weight: 500;
+    }
+    .chat-bubble.assistant {
+      align-self: flex-start;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border);
+      color: #fff;
+      font-family: var(--font-mono);
+      font-size: 13px;
+      white-space: pre-wrap;
+    }
+    .chat-input-row {
+      display: flex;
+      gap: 10px;
+      margin-top: 16px;
+    }
+    .chat-input {
+      flex: 1;
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid var(--border);
+      color: #fff;
+      padding: 12px 16px;
+      border-radius: 10px;
+      font-size: 14px;
+      font-family: var(--font-sans);
+    }
+    .chat-input:focus {
+      outline: none;
+      border-color: var(--primary);
+    }
+
+    .paged-sidebar {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 20px;
+      height: 520px;
+      overflow-y: auto;
+    }
+    .sidebar-title {
+      font-size: 14px;
+      font-weight: 700;
+      margin-bottom: 14px;
+      color: var(--primary);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .paged-card {
+      background: rgba(0, 0, 0, 0.25);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 12px;
+      margin-bottom: 10px;
+      font-size: 12px;
+    }
+
+    /* Compactor Lab */
+    .lab-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+    .lab-box {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 20px;
+    }
+    textarea.code-area {
+      width: 100%;
+      height: 280px;
+      background: rgba(0, 0, 0, 0.4);
+      border: 1px solid var(--border);
+      color: #7dd3fc;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      padding: 14px;
+      border-radius: 8px;
+      resize: none;
+      margin-top: 10px;
+    }
+    textarea.code-area:focus {
+      outline: none;
+      border-color: var(--primary);
+    }
+
+    /* Modal */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(8px);
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal-overlay.active { display: flex; }
+    .modal-content {
+      background: #0f172a;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      width: 720px;
+      max-width: 90vw;
+      max-height: 80vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .modal-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .modal-body {
+      padding: 20px;
+      overflow-y: auto;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: #94a3b8;
+      white-space: pre-wrap;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Navigation Header -->
+  <header>
+    <div class="brand">
+      <div class="brand-logo">C</div>
+      <div class="brand-title">
+        ContextOS
+        <span class="brand-badge">vKernel 0.1.0</span>
+      </div>
+    </div>
+    <div class="header-actions">
+      <div class="status-pill">
+        <span class="pulse-dot"></span>
+        <span id="daemon-status">VMM Active</span>
+      </div>
+      <button class="btn btn-secondary" onclick="scanWorkspace()">📁 Scan Workspace</button>
+      <button class="btn" onclick="triggerPageFaultPrompt()">⚡ Rehydrate All</button>
+    </div>
+  </header>
+
+  <main>
+    <!-- Top Telemetry Row -->
+    <div class="metrics-grid">
+      <!-- RAM Gauge -->
+      <div class="metric-card">
+        <div class="metric-label">
+          <span>Active Context RAM (Working Set)</span>
+          <span id="util-pct-label">0%</span>
+        </div>
+        <div class="metric-value" id="working-tokens-val">0</div>
+        <div class="ram-bar-container">
+          <div class="ram-bar-fill" id="ram-progress"></div>
+        </div>
+        <div class="metric-sub" id="budget-sub">Token Budget: 16,000 max</div>
+      </div>
+
+      <!-- L3 Virtual Swap -->
+      <div class="metric-card">
+        <div class="metric-label">L3 Virtual Swap</div>
+        <div class="metric-value" style="color: var(--purple);" id="swapped-tokens-val">0</div>
+        <div class="metric-sub" id="swapped-pages-sub">0 pages on disk</div>
+        <div class="metric-sub" id="swap-disk-sub"></div>
+      </div>
+
+      <!-- Tokens Saved -->
+      <div class="metric-card">
+        <div class="metric-label">Token Savings</div>
+        <div class="metric-value" style="color: var(--green);" id="tokens-saved-val">+0</div>
+        <div class="metric-sub">Compaction & Eviction</div>
+      </div>
+
+      <!-- Page Faults -->
+      <div class="metric-card">
+        <div class="metric-label">Page Fault Hits</div>
+        <div class="metric-value" style="color: var(--yellow);" id="page-faults-val">0</div>
+        <div class="metric-sub" id="fault-latency-sub">no faults yet</div>
+      </div>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <div class="nav-tabs">
+      <button class="nav-tab active" onclick="switchTab(event, 'tab-pages')">📑 Memory Page Explorer</button>
+      <button class="nav-tab" onclick="switchTab(event, 'tab-chat')">💬 ContextOS Live Chat</button>
+      <button class="nav-tab" onclick="switchTab(event, 'tab-compactor')">✂️ Traceback Compactor Lab</button>
+    </div>
+
+    <!-- Tab 1: Memory Page Explorer -->
+    <div id="tab-pages" class="tab-content active">
+      <div class="panel-box">
+        <div class="panel-header">
+          <div style="font-weight: 600; font-size: 15px;">Active VMM Page Table</div>
+          <input type="text" id="page-search" class="search-input" placeholder="Search pages, files, rules..." oninput="renderPagesTable()">
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Page ID</th>
+              <th>Resource / File</th>
+              <th>Tier</th>
+              <th>Status</th>
+              <th>Tokens</th>
+              <th>Representation</th>
+              <th>VMM Action</th>
+            </tr>
+          </thead>
+          <tbody id="pages-tbody">
+            <tr><td colspan="7" style="text-align: center; color: var(--text-muted);">Loading memory pages...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Tab 2: ContextOS Live Chat -->
+    <div id="tab-chat" class="tab-content">
+      <div class="chat-layout">
+        <div class="chat-box">
+          <div class="chat-messages" id="chat-messages">
+            <div class="chat-bubble assistant">👋 Hello! ContextOS is managing your project's context. Ask any question about your codebase or instructions—ContextOS will dynamically page in only the relevant files.</div>
+          </div>
+          <div class="chat-input-row">
+            <input type="text" id="chat-input" class="chat-input" placeholder="Ask anything about your code or architecture..." onkeydown="if(event.key==='Enter') sendChat()">
+            <button class="btn" onclick="sendChat()">Send</button>
+          </div>
+        </div>
+
+        <div class="paged-sidebar">
+          <div class="sidebar-title">⚡ Autonomous Paging Activity</div>
+          <div id="paging-stream">
+            <div style="font-size: 12px; color: var(--text-muted);">No page faults triggered yet. Ask a question to see ContextOS page files in real time.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab 3: Traceback Compactor Lab -->
+    <div id="tab-compactor" class="tab-content">
+      <div class="lab-grid">
+        <div class="lab-box">
+          <div style="font-weight: 600; font-size: 14px; margin-bottom: 8px;">Paste Raw Error / Crash Traceback:</div>
+          <textarea id="raw-trace-input" class="code-area" placeholder="Traceback (most recent call last):&#10;  File 'site-packages/starlette/routing.py', line 68..."></textarea>
+          <button class="btn" style="margin-top: 14px;" onclick="testCompact()">✂️ Compact Noise</button>
+        </div>
+        <div class="lab-box">
+          <div style="font-weight: 600; font-size: 14px; margin-bottom: 8px; display: flex; justify-content: space-between;">
+            <span>Compacted Output (Ready for LLM):</span>
+            <span id="compact-stats" style="color: var(--green); font-size: 12px;"></span>
+          </div>
+          <textarea id="compact-result-output" class="code-area" readonly placeholder="Compacted root-cause context will appear here..."></textarea>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Content Inspector Modal -->
+  <div class="modal-overlay" id="inspect-modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div id="modal-title" style="font-weight: 600;">Page Content</div>
+        <button class="mini-btn" onclick="closeModal()">✕ Close</button>
+      </div>
+      <div class="modal-body" id="modal-body"></div>
+    </div>
+  </div>
+
+  <script>
+    'use strict';
+
+    // The dashboard shows only what the kernel reports. Where a figure is not
+    // available (no faults measured yet, page content not exposed by the server)
+    // it says so rather than displaying a placeholder that looks like data.
+    let currentPages = [];
+
+    async function apiRequest(url, options) {
+      const response = await fetch(url, options);
+      if (!response.ok) {
+        let detail = response.statusText;
+        try {
+          const body = await response.json();
+          detail = body.detail || (body.error && body.error.message) || detail;
+        } catch (err) { /* response was not JSON */ }
+        const error = new Error(detail);
+        error.status = response.status;
+        throw error;
+      }
+      return response.json();
+    }
+
+    function setConnectionState(connected, message) {
+      const pill = document.getElementById('daemon-status');
+      pill.textContent = connected ? 'kernel connected' : (message || 'kernel unreachable');
+      pill.style.color = connected ? '' : 'var(--red)';
+    }
+
+    async function fetchTelemetry() {
+      try {
+        const [metrics, pages] = await Promise.all([
+          apiRequest('/metrics'),
+          apiRequest('/api/pages')
+        ]);
+        updateMetricsUI(metrics);
+        currentPages = pages.pages || [];
+        window.contentAvailable = pages.content_available;
+        renderPagesTable();
+        setConnectionState(true);
+      } catch (err) {
+        setConnectionState(false, err.status === 401 ? 'API key required' : 'kernel unreachable');
+      }
+    }
+
+    function updateMetricsUI(m) {
+      const n = (value) => (value || 0).toLocaleString();
+
+      document.getElementById('working-tokens-val').textContent = n(m.working_tokens);
+      document.getElementById('swapped-tokens-val').textContent = n(m.swapped_tokens);
+      document.getElementById('tokens-saved-val').textContent = '+' + n(m.total_tokens_saved);
+      document.getElementById('page-faults-val').textContent = m.total_page_faults || 0;
+      document.getElementById('util-pct-label').textContent = (m.budget_utilization_pct || 0) + '%';
+      document.getElementById('swapped-pages-sub').textContent = (m.l3_pages || 0) + ' pages on disk';
+      document.getElementById('budget-sub').textContent = 'Budget: ' + n(m.token_budget) + ' tokens';
+
+      // Latency is measured, so it stays blank until a fault has been timed.
+      document.getElementById('fault-latency-sub').textContent =
+        m.total_page_faults ? m.avg_page_fault_ms.toFixed(2) + ' ms average' : 'no faults yet';
+
+      // The swap database can hold rows from earlier runs. Surfaced separately so
+      // it is never mistaken for what this kernel currently has swapped out.
+      document.getElementById('swap-disk-sub').textContent =
+        (m.swap_disk_rows !== m.l3_pages)
+          ? 'database: ' + m.swap_disk_rows + ' rows incl. earlier runs'
+          : '';
+
+      const bar = document.getElementById('ram-progress');
+      const pct = Math.min(100, Math.max(0, m.budget_utilization_pct || 0));
+      bar.style.width = pct + '%';
+      if (m.over_budget) bar.style.background = 'var(--red)';
+      else if (pct > 90) bar.style.background = 'linear-gradient(90deg, #ef4444, #f59e0b)';
+      else if (pct > 75) bar.style.background = 'linear-gradient(90deg, #f59e0b, #00d2ff)';
+      else bar.style.background = 'linear-gradient(90deg, #10b981, #00d2ff)';
+    }
+
+    function renderPagesTable() {
+      const tbody = document.getElementById('pages-tbody');
+      const filter = (document.getElementById('page-search').value || '').toLowerCase();
+      const filtered = currentPages.filter(p =>
+        p.id.toLowerCase().includes(filter) || p.title.toLowerCase().includes(filter));
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--text-muted);">' +
+          (currentPages.length ? 'No pages match that filter.' : 'No pages indexed yet.') + '</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = filtered.map(p => {
+        const resident = p.status === 'ACTIVE';
+        const tierClass = 'tier-' + p.tier.split('_')[0].toLowerCase();
+        const statusClass = resident ? 'status-active' : 'status-swapped';
+        // Swapped pages have no content in memory; the tombstone is what the
+        // model actually sees, so that is what the table shows.
+        const repr = p.tombstone || p.preview || '';
+
+        const action = resident
+          ? (p.tier === 'L0_PINNED'
+              ? '<span style="color:var(--text-muted);font-size:11px;">pinned</span>'
+              : '<button class="mini-btn" onclick="swapOutPage(\'' + p.id + '\')">Swap out</button>')
+          : '<button class="mini-btn" style="border-color:var(--primary);color:var(--primary);" onclick="pageInPage(\'' + p.id + '\')">Page in</button>';
+
+        return '<tr>' +
+          '<td style="font-family:var(--font-mono);color:var(--primary);">' + escapeHtml(p.id) + '</td>' +
+          '<td style="font-weight:500;">' + escapeHtml(p.title) + '</td>' +
+          '<td><span class="badge-tier ' + tierClass + '">' + p.tier + '</span></td>' +
+          '<td><span class="badge-status ' + statusClass + '">' + p.status + '</span></td>' +
+          '<td style="font-family:var(--font-mono);">' + p.tokens.toLocaleString() + '</td>' +
+          '<td style="color:var(--text-muted);font-family:var(--font-mono);font-size:12px;">' +
+            escapeHtml(repr.slice(0, 70)) + (repr.length > 70 ? '...' : '') + '</td>' +
+          '<td><div class="action-btn-group">' + action +
+            '<button class="mini-btn" onclick="inspectPage(\'' + p.id + '\')">View</button>' +
+          '</div></td></tr>';
+      }).join('');
+    }
+
+    async function pageInPage(pageId) {
+      try {
+        await apiRequest('/api/page_in', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ page_id: pageId })
+        });
+      } catch (err) { alert('Could not page in: ' + err.message); }
+      fetchTelemetry();
+    }
+
+    async function swapOutPage(pageId) {
+      try {
+        await apiRequest('/api/swap_out', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ page_id: pageId })
+        });
+      } catch (err) { alert('Could not swap out: ' + err.message); }
+      fetchTelemetry();
+    }
+
+    async function scanWorkspace() {
+      const pill = document.getElementById('daemon-status');
+      pill.textContent = 'scanning...';
+      try {
+        const res = await apiRequest('/api/scan', { method: 'POST' });
+        pill.textContent = 'indexed ' + res.files_scanned + ' files';
+      } catch (err) {
+        pill.textContent = 'scan failed';
+      }
+      fetchTelemetry();
+    }
+
+    async function triggerPageFaultPrompt() {
+      const swapped = currentPages.filter(p => p.status !== 'ACTIVE');
+      if (swapped.length === 0) { alert('No pages are currently swapped out.'); return; }
+      for (const page of swapped) {
+        try {
+          await apiRequest('/api/page_in', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ page_id: page.id })
+          });
+        } catch (err) { /* the budget may re-evict mid-loop; keep going */ }
+      }
+      fetchTelemetry();
+    }
+
+    async function sendChat() {
+      const input = document.getElementById('chat-input');
+      const text = input.value.trim();
+      if (!text) return;
+
+      const chatBox = document.getElementById('chat-messages');
+      chatBox.innerHTML += '<div class="chat-bubble user">' + escapeHtml(text) + '</div>';
+      input.value = '';
+      chatBox.scrollTop = chatBox.scrollHeight;
+
+      let res;
+      try {
+        res = await apiRequest('/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: text })
+        });
+      } catch (err) {
+        // No answer is invented when no model is reachable. ContextOS still did
+        // its work - assembling and paging the context - and says so.
+        chatBox.innerHTML += '<div class="chat-bubble assistant" style="border-color:var(--red);">' +
+          '<strong>No model available.</strong><br>' + escapeHtml(err.message) +
+          '<br><br><span style="color:var(--text-muted);">The context was still assembled and paged; ' +
+          'only the answer needs a model server.</span></div>';
+        chatBox.scrollTop = chatBox.scrollHeight;
+        return;
+      }
+
+      chatBox.innerHTML += '<div class="chat-bubble assistant">' + escapeHtml(res.response) + '</div>';
+      chatBox.scrollTop = chatBox.scrollHeight;
+
+      const stream = document.getElementById('paging-stream');
+      if (res.rehydrated && res.rehydrated.length > 0) {
+        stream.innerHTML = res.rehydrated.map(id =>
+          '<div class="paged-card"><span style="color:var(--yellow);font-weight:600;">paged in</span><br>' +
+          '<span style="color:#fff;font-family:var(--font-mono);">' + escapeHtml(id) + '</span></div>'
+        ).join('') + stream.innerHTML;
+      }
+      fetchTelemetry();
+    }
+
+    async function testCompact() {
+      const raw = document.getElementById('raw-trace-input').value;
+      if (!raw.trim()) return;
+
+      const stats = document.getElementById('compact-stats');
+      try {
+        const res = await apiRequest('/api/compact', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ error_log: raw })
+        });
+        document.getElementById('compact-result-output').value = res.compacted_text;
+        stats.textContent = res.unchanged
+          ? 'Not compacted (' + res.original_tokens + ' tokens, detected as ' + res.language +
+            '). Output would not have been smaller, so the input is unchanged.'
+          : res.original_tokens.toLocaleString() + ' -> ' + res.compacted_tokens.toLocaleString() +
+            ' tokens, ' + res.reduction_pct + '% smaller (' + res.language + ')';
+      } catch (err) {
+        stats.textContent = 'Compaction failed: ' + err.message;
+      }
+      fetchTelemetry();
+    }
+
+    async function inspectPage(pageId) {
+      const page = currentPages.find(p => p.id === pageId);
+      if (!page) return;
+
+      document.getElementById('modal-title').textContent = page.title + '  (' + page.id + ')';
+      const body = document.getElementById('modal-body');
+
+      if (page.status !== 'ACTIVE') {
+        body.textContent = 'This page is swapped to disk. Its content is not in the context window.\n\n' +
+          (page.tombstone || '') + '\n\nUse "Page in" to restore it.';
+      } else if (page.content !== undefined) {
+        body.textContent = page.content;
+      } else if (window.contentAvailable) {
+        try {
+          const full = await apiRequest('/api/pages?include_content=true');
+          const match = (full.pages || []).find(p => p.id === pageId);
+          body.textContent = (match && match.content) ? match.content : (page.preview || '');
+        } catch (err) {
+          body.textContent = page.preview || '';
+        }
+      } else {
+        body.textContent = (page.preview || '') +
+          '\n\n--- Preview only. This server was started without content exposure; ' +
+          'set CONTEXTOS_EXPOSE_CONTENT=1 to serve full file contents over HTTP. ---';
+      }
+      document.getElementById('inspect-modal').classList.add('active');
+    }
+
+    function closeModal() {
+      document.getElementById('inspect-modal').classList.remove('active');
+    }
+
+    function switchTab(evt, tabId) {
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.nav-tab').forEach(el => el.classList.remove('active'));
+      document.getElementById(tabId).classList.add('active');
+      if (evt && evt.currentTarget) evt.currentTarget.classList.add('active');
+    }
+
+    function escapeHtml(str) {
+      if (str === null || str === undefined) return '';
+      return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    document.getElementById('page-search').addEventListener('input', renderPagesTable);
+    document.getElementById('chat-input').addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') sendChat();
+    });
+
+    fetchTelemetry();
+    setInterval(fetchTelemetry, 2000);
+  </script>
+</body>
+</html>

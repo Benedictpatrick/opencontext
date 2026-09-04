@@ -1,0 +1,16 @@
+# Convenience file for `pip install -r requirements.txt`.
+# pyproject.toml is authoritative; it defines optional extras so a library or
+# MCP-only install does not pull in a web framework or a terminal UI.
+# This file installs everything, equivalent to `pip install -e ".[dev]"`.
+
+pydantic>=2.0.0
+rich>=13.0.0
+httpx>=0.24.0
+
+textual>=0.80.0      # contextos tui
+fastapi>=0.100.0     # contextos serve
+uvicorn>=0.20.0      # contextos serve
+tiktoken>=0.5.0      # optional: exact token counting
+
+pytest>=7.0.0
+pytest-asyncio>=0.21.0
