@@ -6,7 +6,7 @@ Keeps the active working set inside a token budget, moves cold pages to local di
 
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
-[![Tests](https://img.shields.io/badge/tests-passing-brightgreen.svg)]()
+[![CI](https://github.com/Benedictpatrick/opencontext/actions/workflows/ci.yml/badge.svg)](https://github.com/Benedictpatrick/opencontext/actions/workflows/ci.yml)
 
 ---
 

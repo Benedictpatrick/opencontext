@@ -1,0 +1,11 @@
+# Normalise line endings for source and docs.
+* text=auto
+
+# The benchmark fixtures are frozen bytes, not editable text.
+#
+# Token estimation counts whitespace, so a CRLF checkout shifts every published
+# figure — the sample source alone moves by 132 tokens, which is enough to fail
+# the test that compares the README table against `opencontext bench`. Marking
+# them binary stops Git converting them on any platform, so the numbers are the
+# same on a Windows runner as on Linux.
+tests/fixtures/** -text
